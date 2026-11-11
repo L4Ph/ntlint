@@ -166,8 +166,8 @@ export interface Finding {
   line: number;
   endLine: number;
   severity: Severity;
-  /** `violation`, `candidate` (weak claim), `unsure` (low confidence), `missing`. */
-  messageId: MessageId;
+  /** `violation`, `candidate` (weak claim), `unsure` (low confidence), `missing`, or null when the answer was under its cutoff. */
+  messageId: MessageId | null;
   /** Whether a reader should see it. A `missing` is never reported. */
   reported: boolean;
   value: number | null;
@@ -177,4 +177,34 @@ export interface Finding {
   /** `value / at`: the only sound way to rank findings from different rules. */
   margin: number | null;
   subjectSource: TestSubject["subjectSource"];
+}
+
+/**
+ * One rule, as code.
+ *
+ * `gate`, `require` and `candidate` are the constraints a YAML rule could not
+ * express; they are why a rule is a module rather than a data file.
+ */
+export interface Rule {
+  id: string;
+  /** Where a reader finds what it means and why it ships. Required: a finding
+   *  an agent cannot look up is a finding it has to guess about. */
+  docs: string;
+  severity: Severity;
+  /** What this rule needs before it can say anything. */
+  requires: Capability[];
+  ask: string;
+  /** The two branches of a `noul`; shown to the model, so part of the question. */
+  criteria: { true: string; false: string } | null;
+  /** A `score` rule's ordered levels, when the answer is a conclusion. */
+  levels: Record<string, string> | null;
+  kind: "noul" | "score";
+  /** The cutoff in force. Fitted, never guessed: see the rule's `docs`. */
+  threshold: number;
+  /** False means the question is not worth spending a request on. */
+  gate: ((test: TestSubject) => boolean) | null;
+  /** False means the answer cannot be used as a verdict for this rule. */
+  require: ((answer: Answer) => boolean) | null;
+  /** True means the answer is over the cutoff but the claim is a weak one. */
+  candidate: ((answer: Answer) => boolean) | null;
 }
