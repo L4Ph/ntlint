@@ -1,4 +1,4 @@
-import { defineRule } from "../core/rules.ts";
+import { defineRule } from "@test-lint/core";
 
 /**
  * New in this tool, uncalibrated. Skipping is not always a defect -- a test

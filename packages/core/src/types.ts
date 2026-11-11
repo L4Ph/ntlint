@@ -23,6 +23,8 @@ export const CAPABILITIES = [
   "hooks",
   "snapshot",
   "async",
+  "io",
+  "nondeterminism",
   // from the runner: what a rule is allowed to touch
   "model",
   "clock",
@@ -40,12 +42,14 @@ export const VOCAB_CAPABILITIES = [
   "hooks",
   "snapshot",
   "async",
+  "io",
+  "nondeterminism",
 ] as const satisfies readonly Capability[];
 
 /**
  * A container that wraps tests without being test logic.
  *
- * `if (import.meta.vitest)` and `#[cfg(test)] mod tests` are the two that
+ * Vitest's in-source guard and Rust's `#[cfg(test)] mod tests` are the two that
  * exist. A rule reading "an assertion inside a conditional" must skip them, or
  * every in-source test is a false positive.
  */
@@ -105,8 +109,14 @@ export interface Vocab {
   sleep: Predicate[];
   skip: VocabSkip;
   hooks: Predicate[];
-  /** Declared, not inferred: a vocabulary that cannot take snapshots says so. */
-  snapshot: boolean;
+  /** Matcher names whose assertion is a call check rather than an outcome check. */
+  interactionMatchers: string[];
+  /** Matcher names that record output rather than assert a property of it. */
+  snapshotMatchers: string[];
+  /** Filesystem and network calls a small test should not make. */
+  io: Predicate[];
+  /** Clock, randomness and ids: the three ways a test stops being repeatable. */
+  nondeterminism: Predicate[];
   async: boolean;
 }
 
@@ -120,7 +130,7 @@ export interface TestSubject {
    * How the subject was found. A rule that expects a whole test must not run
    * on `file`, and a reader must be able to tell the two apart.
    */
-  subjectSource: "test" | "function" | "file";
+  subjectSource: "test" | "suite" | "function" | "file";
   /** The test's title, or the enclosing function's name, or the file's path. */
   name: string | null;
   /** What the model reads: title and body, or the whole file at step three. */
@@ -139,12 +149,26 @@ export interface TestSubject {
  */
 export interface Facts {
   assertions: number;
+  /** Assertions that check that a collaborator was called, rather than a result. */
+  interactionAssertions: number;
+  /** Assertions that compare a value with itself, so they cannot fail. */
+  trivialAssertions: number;
+  /** Assertions that record output instead of asserting a property of it. */
+  snapshots: number;
   doubles: number;
   sleeps: number;
+  /** Filesystem, network or subprocess calls inside the test. */
+  io: number;
+  /** Clock, random or generated-id reads inside the test. */
+  nondeterminism: number;
+  /** Hooks the enclosing suite declares: setup and teardown the test may rely on. */
+  hooks: number;
   skip: string | null;
   /** True when the subject carries an assertion under a loop or a conditional. */
   nestedAssertions: boolean;
   awaits: number;
+  /** Another test in the same file has the same name. */
+  duplicateName: boolean;
 }
 
 /** An answer from Jev, as `readAnswer` returns it. */

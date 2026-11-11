@@ -1,4 +1,4 @@
-import { defineRule } from "../core/rules.ts";
+import { defineRule } from "@test-lint/core";
 
 /**
  * Ported from jev-lint `rules/typescript/test-name-verifies-claim` (MIT).

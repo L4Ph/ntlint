@@ -1,4 +1,4 @@
-import type { Answer, Rule, TestSubject } from "../src/core/types.ts";
+import type { Answer, Rule, TestSubject } from "../types.ts";
 
 export function subject(overrides: Partial<TestSubject> = {}): TestSubject {
   return {
@@ -12,11 +12,18 @@ export function subject(overrides: Partial<TestSubject> = {}): TestSubject {
     endLine: 5,
     facts: {
       assertions: 1,
+      interactionAssertions: 0,
+      trivialAssertions: 0,
+      snapshots: 0,
       doubles: 0,
       sleeps: 0,
+      io: 0,
+      nondeterminism: 0,
+      hooks: 0,
       skip: null,
       nestedAssertions: false,
       awaits: 0,
+      duplicateName: false,
     },
     ...overrides,
   };

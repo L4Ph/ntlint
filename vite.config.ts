@@ -1,6 +1,11 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  // The linter's own tests live in the modules they test. A tool that judges
+  // in-source tests should be able to run its own.
+  test: {
+    includeSource: ["packages/*/src/**/*.ts", "!packages/*/src/**/*.d.ts"],
+  },
   staged: {
     "*": "vp check --fix",
   },

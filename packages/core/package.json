@@ -1,0 +1,24 @@
+{
+  "name": "@test-lint/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The linter core: vocabularies, findings, and the gate. No model, no I/O.",
+  "files": [
+    "src",
+    "!src/**/*.test.ts"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/builders.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@ast-grep/napi": "^0.51.1",
+    "yaml": "^2.9.1"
+  }
+}

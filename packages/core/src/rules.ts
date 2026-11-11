@@ -37,8 +37,8 @@ export interface LoadOptions {
   capabilities: ReadonlySet<Capability>;
   /** `--deterministic`: refuse anything that could make a run irreproducible. */
   deterministic: boolean;
-  /** `--allow-uncalibrated`: run a rule whose cutoff is a placeholder. */
-  allowUncalibrated: boolean;
+  /** `--strict-calibration`: drop rules whose cutoff is a placeholder. */
+  strictCalibration: boolean;
 }
 
 export interface LoadedRules {
@@ -84,10 +84,10 @@ export function loadRules(defs: readonly Rule[], options: LoadOptions): LoadedRu
       continue;
     }
 
-    if (!def.calibrated && !options.allowUncalibrated) {
+    if (!def.calibrated && options.strictCalibration) {
       skipped.push({
         id: def.id,
-        reason: "cutoff is uncalibrated; pass --allow-uncalibrated to run it anyway",
+        reason: "cutoff is uncalibrated; --strict-calibration drops it",
       });
       continue;
     }
