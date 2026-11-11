@@ -251,12 +251,20 @@ recalibration must be free.
 ## Layout and tests
 
 ```
-packages/core     @test-lint/core    vocabularies, findings, gate, cache, question
+packages/core     @test-lint/core    vocabularies, extraction, client, run, gate, cache, report
 packages/rules    @test-lint/rules   the built-in rules; depends on core, never the reverse
+packages/cli      @test-lint/cli     check / --dry-run / --json, and the exit code; depends on both
 ```
 
 A built-in rule is a plugin that ships with the tool, not part of its engine, so
 the dependency runs one way.
+
+**Grammars.** `@ast-grep/napi` ships five (Html, JavaScript, Tsx, Css,
+TypeScript). Python, Go and Rust are separate `@ast-grep/lang-*` packages or a
+compiled parser, so the four-language design needs a dependency decision before
+it is true. Extraction says so rather than returning an empty answer: a
+vocabulary naming a grammar this build cannot parse yields no subjects, and the
+run prints what it could not read.
 
 The tests live in the modules they cover, inside `if (import.meta.vitest)`
 blocks, run through `test.includeSource`. A tool that judges in-source tests

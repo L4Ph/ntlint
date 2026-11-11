@@ -16,7 +16,14 @@ export { defineRule, loadRules, severityOf, validateRule } from "./rules.ts";
 export type { LoadOptions, LoadedRules, SkippedRule } from "./rules.ts";
 export { derivedCapabilities, mergeVocabs, parseVocab, VocabError } from "./vocab.ts";
 export { formatGithub, formatJson, formatPretty } from "./report.ts";
-export { classify, JevClient, JevError, readAnswer, takeKeyFromEnv } from "./client.ts";
+export {
+  classify,
+  JevClient,
+  JevError,
+  readAnswer,
+  takeKeyFromEnv,
+  USD_PER_MTOK,
+} from "./client.ts";
 export type {
   AskClient,
   AskRequest,
