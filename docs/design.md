@@ -287,8 +287,14 @@ jev-lint holds itself to.
   framework-shaped rule set this tool exists to avoid.
 - **Decided: facts are evidence, not verdicts, because** an incomplete
   vocabulary must weaken a question rather than suppress a verdict.
-- **Decided: vocabulary is data, because** adding a language should be a
-  thirty-line diff, and a reviewer must be able to check the norm by reading it.
+- **Decided: vocabulary is data, and YAML is the third runtime dependency,
+  because** a vocabulary a reviewer cannot read is a vocabulary nobody checks,
+  and the alternative -- a language table in code -- breaks "adding a language
+  is a data change". `yaml` is the same dependency jev-lint carries for the
+  same reason.
+- **Decided: `docs` is a repository path today, not a URL, because** a URL would
+  name a host this project has not chosen yet, and a path is checkable by the
+  agent reading the same checkout. The validator accepts either.
 - **Decided: in-process, with the key removed from the environment, because**
   Node's permission model only applies at process start, and per-plugin
   processes would dominate the runtime of a twenty-rule run.
