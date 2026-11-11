@@ -308,16 +308,27 @@ jev-lint holds itself to.
 
 ## v0.1 rules
 
-Six ported from jev-lint, whose cutoffs were fitted on their fixtures:
-`test-name-describes-code`, `test-name-verifies-claim`,
-`tests-cover-failure-paths`, `test-mocks-subject`,
-`snapshot-only-behaviour-claim`, `describe-names-subject`.
+Four ported from jev-lint, whose cutoffs were fitted on their fixtures:
+`test-name-describes-code` (0.72), `test-name-verifies-claim` (0.66),
+`test-mocks-subject` (0.30), `snapshot-only-behaviour-claim` (0.67). The
+sentences and criteria travel with the cutoffs, because a cutoff fitted to one
+sentence is not a cutoff for another.
 
-Four new, each needing its own canary before its cutoff is claimed:
-`test-asserts-something`, `no-abandoned-test` (skip/only/focus),
-`no-fixed-delay` (fixed sleep where a synchronization point exists),
-`test-structure-is-flat` (assertions not buried in loops or conditionals, with
-vocabulary-declared guards treated as transparent).
+Six new, all shipping with `calibrated: false`:
+`test-asserts-something` (gated to tests with no assertion),
+`test-is-not-abandoned` (gated to tests carrying a skip marker),
+`test-waits-for-the-event` (gated to tests that sleep),
+`test-structure-is-flat` (gated to assertions under a loop or conditional),
+`test-asserts-the-outcome`, `test-name-is-a-specification`.
+
+**An uncalibrated rule does not run unless `--allow-uncalibrated` is passed.**
+jev-lint's own rule is that a guessed cutoff is written as uncalibrated and
+does not ship that way; a field plus a refusal is that rule made checkable.
+
+Two of jev-lint's test rules are deliberately absent. `tests-cover-failure-paths`
+pairs a function with the tests that reach it, and `describe-names-subject`
+judges a suite against the tests inside it. Both need a subject shape v0.1 does
+not have; shipping them as test rules would judge the wrong thing.
 
 **Decided: ten rules in v0.1 rather than seventeen, because** under an
 always-Jev design every rule needs fixtures and a fitted cutoff -- a
