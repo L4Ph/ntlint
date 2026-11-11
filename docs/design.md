@@ -79,6 +79,60 @@ Three properties of this shape are load-bearing:
 - **Every rule goes through Jev.** There is no deterministic verdict path, so
   there is no second engine and no second output shape.
 
+## Where a test lives
+
+A test is not always in a test file. Both languages with in-source testing are
+in the v0.1 set:
+
+```ts
+// src/discount.ts -- vitest in-source testing
+if (import.meta.vitest) {
+  const { it, expect } = import.meta.vitest;
+  it("applies the discount", () => {
+    expect(applyDiscount(cart)).toBe(90);
+  });
+}
+```
+
+```rust
+// src/discount.rs
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn applies_the_discount() { assert_eq!(apply_discount(cart), 90); }
+}
+```
+
+Three consequences, each of which is a bug if missed:
+
+1. **Discovery is by construct, never by path.** The tool does not glob
+   `*.test.ts`; it walks the extensions its vocabularies claim and looks for
+   tests anywhere in them, production sources included. A path filter would
+   miss every in-source test silently, which is the failure mode this design
+   treats as the most expensive one.
+2. **Containers nest.** A Rust test sits inside `mod tests`, which may sit
+   inside an `impl`. The container search must not assume a top-level node.
+3. **The guard is not test logic.** `if (import.meta.vitest)` is a conditional
+   wrapping every in-source test, and `#[cfg(test)]` is an attribute on the
+   module. A rule that reads "an assertion inside a conditional or a loop" must
+   treat both as transparent, or every in-source test becomes a false positive.
+
+A vocabulary therefore declares its guards:
+
+```yaml
+test:
+  guard:
+    - { kind: if_statement, condition: '^import\.meta\.vitest$' }
+    - { kind: mod_item, attribute: '^#\[cfg\(test\)\]$' }
+```
+
+And assertion resolution must accept the in-source import source: vitest's
+in-source `expect` comes from `import.meta.vitest`, not from `"vitest"`. A
+vocabulary that names only the package leaves `facts.assertions` empty and
+turns "this test asserts nothing" into a false positive on every in-source
+test.
+
 ## Rule plugin API
 
 A rule is code. There is no YAML rule format: YAML could carry a sentence and a
@@ -142,6 +196,8 @@ test:
   # approximation until a `follows` relation is shown to be reliable.
   marker: '#\[\s*(tokio::)?test\s*\]'
   container: function_item
+  # `#[cfg(test)] mod tests` wraps the tests without being one.
+  guard: [{ kind: mod_item, attribute: '^#\[cfg\(test\)\]$' }]
 structure:
   loop: [loop_expression, while_expression, for_expression]
   conditional: [if_expression, match_expression]
@@ -205,6 +261,17 @@ discovery. This is deterministic, needs no API key, and runs in CI:
 
 A mismatch is a vocabulary bug, not a tolerance to widen.
 
+Two of the four have a second place a test can live, and both are verified on
+their own fixtures rather than assumed:
+
+- **TypeScript in-source** (`if (import.meta.vitest)`): `vp test list` must be
+  shown to list these before it is trusted as the oracle. If it does not, the
+  count comes from the fixture itself.
+- **Rust in-source** (`#[cfg(test)] mod tests` in `src/`): `cargo test -- --list`
+  lists them; doc tests are excluded before comparing.
+- Python doctests are a different subject shape (a docstring, not a body) and
+  are out of v0.1. Go has no in-source convention.
+
 Rule quality is measured on a canary set: known-bad and known-good tests per
 rule, re-scored on every release, with precision and recall written into the
 README. A rule that cannot separate them does not ship, the same standard
@@ -249,7 +316,8 @@ Six ported from jev-lint, whose cutoffs were fitted on their fixtures:
 Four new, each needing its own canary before its cutoff is claimed:
 `test-asserts-something`, `no-abandoned-test` (skip/only/focus),
 `no-fixed-delay` (fixed sleep where a synchronization point exists),
-`test-structure-is-flat` (assertions not buried in loops or conditionals).
+`test-structure-is-flat` (assertions not buried in loops or conditionals, with
+vocabulary-declared guards treated as transparent).
 
 **Decided: ten rules in v0.1 rather than seventeen, because** under an
 always-Jev design every rule needs fixtures and a fitted cutoff -- a
@@ -265,22 +333,27 @@ each with its precision published.
   aggregated by reason? Deferred until there are enough findings to aggregate.
 - Is a file-level fallback (`subjectSource: "file"`) ever useful, or always
   noise? Measure on a language without a vocabulary before shipping it.
+- Python's `def test_*` convention is ambiguous in production code: a helper
+  named `test_connection` is not a test. Extraction reports `subjectSource:
+  "test"` for it today. Measure the noise on a real repository before deciding
+  whether to require a pytest import or an assertion fact.
 
 ## Units
 
 Each unit's `verify` is the narrowest command that fails when the unit
 regresses.
 
-| Unit              | Acceptance                                                                                                                | Verify                                 |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `plugin-loader`   | A plugin declaring `model` is refused under `--deterministic`; the key is absent from `process.env` when plugin code runs | `vp test tests/plugin.test.ts`         |
-| `vocab-loader`    | A user vocabulary overrides a shipped one; a duplicate id is a load error, not a silent shadow                            | `vp test tests/vocab.test.ts`          |
-| `extract-ts`      | Test count and name/body agree with `vp test list` on the fixture suite                                                   | `vp test tests/extract-ts.test.ts`     |
-| `extract-python`  | Agrees with `pytest --collect-only -q`                                                                                    | `vp test tests/extract-python.test.ts` |
-| `extract-go`      | Agrees with `go test -list '.*'`                                                                                          | `vp test tests/extract-go.test.ts`     |
-| `extract-rust`    | Agrees with `cargo test -- --list`, doc tests excluded; approximate cases assert `subjectSource: "function"`              | `vp test tests/extract-rust.test.ts`   |
-| `judge-and-cache` | Two runs with the same input hit the cache and print identical findings; changing a fact invalidates the entry            | `vp test tests/judge.test.ts`          |
-| `gate-and-report` | `missing` never reads as clean; `--fail-on error` does not fail on a warning                                              | `vp test tests/gate.test.ts`           |
-| `rules-ported`    | Each ported rule reproduces its jev-lint fixture decisions at the ported cutoff                                           | `test-lint eval --replay`              |
-| `rules-new`       | Each new rule separates its canary set; precision and recall in the README                                                | `test-lint eval --replay`              |
-| `canary`          | A rule that detects nothing fails the canary rather than passing quietly                                                  | `vp test tests/canary.test.ts`         |
+| Unit                | Acceptance                                                                                                                                                     | Verify                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `plugin-loader`     | A plugin declaring `model` is refused under `--deterministic`; the key is absent from `process.env` when plugin code runs                                      | `vp test tests/plugin.test.ts`            |
+| `vocab-loader`      | A user vocabulary overrides a shipped one; a duplicate id is a load error, not a silent shadow                                                                 | `vp test tests/vocab.test.ts`             |
+| `extract-ts`        | Test count and name/body agree with `vp test list` on the fixture suite                                                                                        | `vp test tests/extract-ts.test.ts`        |
+| `extract-python`    | Agrees with `pytest --collect-only -q`                                                                                                                         | `vp test tests/extract-python.test.ts`    |
+| `extract-go`        | Agrees with `go test -list '.*'`                                                                                                                               | `vp test tests/extract-go.test.ts`        |
+| `extract-rust`      | Agrees with `cargo test -- --list`, doc tests excluded; approximate cases assert `subjectSource: "function"`                                                   | `vp test tests/extract-rust.test.ts`      |
+| `extract-in-source` | In-source tests are found in production files for TypeScript and Rust; the guard is not counted as test logic; a test in `mod tests` inside an `impl` is found | `vp test tests/extract-in-source.test.ts` |
+| `judge-and-cache`   | Two runs with the same input hit the cache and print identical findings; changing a fact invalidates the entry                                                 | `vp test tests/judge.test.ts`             |
+| `gate-and-report`   | `missing` never reads as clean; `--fail-on error` does not fail on a warning                                                                                   | `vp test tests/gate.test.ts`              |
+| `rules-ported`      | Each ported rule reproduces its jev-lint fixture decisions at the ported cutoff                                                                                | `test-lint eval --replay`                 |
+| `rules-new`         | Each new rule separates its canary set; precision and recall in the README                                                                                     | `test-lint eval --replay`                 |
+| `canary`            | A rule that detects nothing fails the canary rather than passing quietly                                                                                       | `vp test tests/canary.test.ts`            |
