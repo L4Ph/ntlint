@@ -201,6 +201,12 @@ export interface Rule {
   kind: "noul" | "score";
   /** The cutoff in force. Fitted, never guessed: see the rule's `docs`. */
   threshold: number;
+  /**
+   * False means the cutoff is a placeholder this rule has not earned yet. Such
+   * a rule is skipped unless a run asks for it explicitly, because a guessed
+   * cutoff presented as a fitted one is a number nobody can trust.
+   */
+  calibrated: boolean;
   /** False means the question is not worth spending a request on. */
   gate: ((test: TestSubject) => boolean) | null;
   /** False means the answer cannot be used as a verdict for this rule. */
