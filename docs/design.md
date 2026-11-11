@@ -180,8 +180,9 @@ is a question only the model can answer.
   `random` is not executed in that mode; `rules` prints why it was skipped.
 - **Per-rule budget.** Exceeding it is a rule error, reported as such, not a
   finding about the code.
-- **Required metadata.** `id`, `docs`, `severity` and a canary fixture. A rule
-  without them fails to load.
+- **Required metadata.** `id`, `docs`, `severity` and a valid question. A rule
+  without them fails to load. A canary entry is required by the canary test
+  rather than the loader, so the rule and its cases are added together.
 
 ## Vocabulary data
 
@@ -246,6 +247,23 @@ verdictKey = sha256(SCHEMA, rule.id, ruleTextHash(rule), factsHash, arm, subject
 a vocabulary would keep serving verdicts formed from the old facts -- the same
 class of bug jev-lint records under "Known imprecisions". `threshold` stays out:
 recalibration must be free.
+
+## Layout and tests
+
+```
+packages/core     @test-lint/core    vocabularies, findings, gate, cache, question
+packages/rules    @test-lint/rules   the built-in rules; depends on core, never the reverse
+```
+
+A built-in rule is a plugin that ships with the tool, not part of its engine, so
+the dependency runs one way.
+
+The tests live in the modules they cover, inside `if (import.meta.vitest)`
+blocks, run through `test.includeSource`. A tool that judges in-source tests
+should run its own. One trap: Vitest treats any file containing the guard as a
+test file, so a doc comment that quotes the guard is a failing test file -- the
+guard is described in prose where it is explained, and `.d.ts` files are
+excluded from the source glob.
 
 ## Verification
 
@@ -314,33 +332,41 @@ jev-lint holds itself to.
 
 ## v0.1 rules
 
-Four ported from jev-lint, whose cutoffs were fitted on their fixtures:
+Seventeen rules ship. Five are ported from jev-lint with the cutoffs fitted on
+its own fixtures, and their sentences and criteria travel with the cutoffs,
+because a cutoff fitted to one sentence is not a cutoff for another:
+
 `test-name-describes-code` (0.72), `test-name-verifies-claim` (0.66),
-`test-mocks-subject` (0.30), `snapshot-only-behaviour-claim` (0.67). The
-sentences and criteria travel with the cutoffs, because a cutoff fitted to one
-sentence is not a cutoff for another.
+`test-mocks-subject` (0.30), `snapshot-only-behaviour-claim` (0.67),
+`describe-names-subject` (0.45, on a suite subject).
 
-Six new, all shipping with `calibrated: false`:
-`test-asserts-something` (gated to tests with no assertion),
-`test-is-not-abandoned` (gated to tests carrying a skip marker),
-`test-waits-for-the-event` (gated to tests that sleep),
-`test-structure-is-flat` (gated to assertions under a loop or conditional),
-`test-asserts-the-outcome`, `test-name-is-a-specification`.
+Twelve are new and ship with `calibrated: false`. Each is gated by a fact so it
+asks only where the question can be answered:
 
-**An uncalibrated rule does not run unless `--allow-uncalibrated` is passed.**
-jev-lint's own rule is that a guessed cutoff is written as uncalibrated and
-does not ship that way; a field plus a refusal is that rule made checkable.
+| rule                              | asked of                                   |
+| --------------------------------- | ------------------------------------------ |
+| `test-asserts-something`          | tests with no assertion                    |
+| `test-asserts-the-outcome`        | tests whose assertions are call checks     |
+| `test-assertion-is-not-trivial`   | tests comparing a value with itself        |
+| `test-is-not-abandoned`           | tests carrying a skip marker               |
+| `test-waits-for-the-event`        | tests that sleep                           |
+| `test-structure-is-flat`          | assertions under a loop or conditional     |
+| `test-name-is-a-specification`    | every named test                           |
+| `test-name-is-unique`             | tests whose name occurs twice in the file  |
+| `test-does-not-mock-what-it-owns` | tests that install a double                |
+| `test-cleans-up-its-doubles`      | tests that install a double with no hooks  |
+| `test-is-deterministic`           | tests reading a clock, randomness or an id |
+| `unit-test-has-no-io`             | tests touching the filesystem or network   |
 
-Two of jev-lint's test rules are deliberately absent. `tests-cover-failure-paths`
-pairs a function with the tests that reach it, and `describe-names-subject`
-judges a suite against the tests inside it. Both need a subject shape v0.1 does
-not have; shipping them as test rules would judge the wrong thing.
+**An uncalibrated rule runs, but it can only produce a candidate**, and
+`--strict-calibration` drops it. A guessed cutoff presented as a fitted one is a
+number nobody can trust, and a rule that never runs because its cutoff is a
+placeholder is the same as no rule at all. A candidate is the middle: the signal
+is available, and nothing unfitted turns an exit code.
 
-**Decided: ten rules in v0.1 rather than seventeen, because** under an
-always-Jev design every rule needs fixtures and a fitted cutoff -- a
-deterministic rule would have needed neither. Seventeen is roughly twice the
-calibration cost and buys no new mechanism. The remaining seven land in v0.1.1,
-each with its precision published.
+One of jev-lint's test rules is deliberately absent. `tests-cover-failure-paths`
+pairs a function with the tests that reach it, which is a subject shape v0.1
+does not have; shipping it as a test rule would judge the wrong thing.
 
 ## Open questions
 
