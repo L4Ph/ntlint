@@ -174,6 +174,9 @@ is a question only the model can answer.
 - **The key never reaches plugin code.** The host reads `TYPESAFE_API_KEY` /
   `TYPESAFEAI_API_KEY`, then deletes it from `process.env` before loading
   plugins. A plugin cannot find it, and there is no HTTP client to hand it.
+- **No file is read for the key.** Not the config, not `.env`. The process reads
+  its environment and nothing else; how a variable got into that environment is
+  the person's decision (`export`, `source .env`, direnv), not the tool's.
 - **One way to the model:** `ctx.judge`. Pacing, retry, splitting on
   `max_tokens_exceeded`, spend accounting and the cache all live behind it.
 - **`--deterministic` refuses at load.** A plugin declaring `model`, `clock` or
@@ -318,6 +321,11 @@ jev-lint holds itself to.
   and the alternative -- a language table in code -- breaks "adding a language
   is a data change". `yaml` is the same dependency jev-lint carries for the
   same reason.
+- **Decided: the tool reads no dotenv file, because** a checkout is
+  attacker-controlled the moment somebody clones it, and a loader has to be
+  narrow (only the key, never the endpoint) to be safe at all. That is a
+  special case to remember, to test and to explain; reading `process.env` alone
+  has none of those costs, and whoever typed the export meant it.
 - **Decided: `docs` is a repository path today, not a URL, because** a URL would
   name a host this project has not chosen yet, and a path is checkable by the
   agent reading the same checkout. The validator accepts either.
