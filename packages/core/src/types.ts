@@ -76,8 +76,12 @@ export interface Predicate {
 }
 
 export interface VocabTest {
-  /** ast-grep util names that match a test container, as `jev-lint` emits them. */
-  utils: string[];
+  /**
+   * Regex over the callee's text, for a test that is a call: `it`, `test`,
+   * `specify` and the modifiers each framework adds. Data, so a language or a
+   * framework is added without touching the extractor.
+   */
+  callee: string | null;
   /** A text marker that identifies a test function, for a grammar with no test kind. */
   marker: string | null;
   /** The node kind that carries a marked test, for a grammar with no test kind. */
@@ -92,6 +96,11 @@ export interface VocabStructure {
   call: string[];
 }
 
+/** A block that groups tests without being one: `describe`, `context`, `suite`. */
+export interface VocabSuite {
+  callee: string | null;
+}
+
 export interface VocabSkip {
   marker: string | null;
   modifiers: string[];
@@ -103,6 +112,7 @@ export interface Vocab {
   /** The file it was read from, shown whenever two vocabularies collide. */
   source: string;
   test: VocabTest;
+  suite: VocabSuite;
   structure: VocabStructure;
   assert: Predicate[];
   double: Predicate[];

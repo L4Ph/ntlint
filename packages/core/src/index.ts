@@ -15,3 +15,17 @@ export type { Question } from "./question.ts";
 export { defineRule, loadRules, severityOf, validateRule } from "./rules.ts";
 export type { LoadOptions, LoadedRules, SkippedRule } from "./rules.ts";
 export { derivedCapabilities, mergeVocabs, parseVocab, VocabError } from "./vocab.ts";
+export { formatGithub, formatJson, formatPretty } from "./report.ts";
+export { classify, JevClient, JevError, readAnswer, takeKeyFromEnv } from "./client.ts";
+export type {
+  AskClient,
+  AskRequest,
+  AskResponse,
+  JevErrorKind,
+  JevOptions,
+  Spend,
+} from "./client.ts";
+export { estimateTokens, usdFor } from "./estimate.ts";
+export { extract, factsOf, supportedGrammars } from "./extract.ts";
+export { run } from "./run.ts";
+export type { RunOptions, RunResult, RunSpend } from "./run.ts";

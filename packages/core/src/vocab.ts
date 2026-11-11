@@ -21,6 +21,7 @@ import type {
   Vocab,
   VocabSkip,
   VocabStructure,
+  VocabSuite,
   VocabTest,
 } from "./types.ts";
 
@@ -38,16 +39,21 @@ const TOP_KEYS = new Set([
   "name",
   "grammars",
   "test",
+  "suite",
   "structure",
   "assert",
   "double",
   "sleep",
   "skip",
   "hooks",
-  "snapshot",
+  "interactionMatchers",
+  "snapshotMatchers",
+  "io",
+  "nondeterminism",
   "async",
 ]);
-const TEST_KEYS = new Set(["utils", "marker", "container", "guard"]);
+const TEST_KEYS = new Set(["callee", "marker", "container", "guard"]);
+const SUITE_KEYS = new Set(["callee"]);
 const GUARD_KEYS = new Set(["kind", "condition", "attribute"]);
 const STRUCTURE_KEYS = new Set(["loop", "conditional", "try", "call"]);
 const PREDICATE_KEYS = new Set(["shape", "callee", "keyword", "importedFrom"]);
@@ -76,6 +82,7 @@ export function parseVocab(text: string, source: string): Vocab {
     grammars,
     source,
     test: parseTest(root.test, source),
+    suite: parseSuite(root.suite, source),
     structure: parseStructure(root.structure, source),
     assert: predicates(root.assert, "assert", source),
     double: predicates(root.double, "double", source),
@@ -94,8 +101,7 @@ export function parseVocab(text: string, source: string): Vocab {
 export function derivedCapabilities(vocab: Vocab): Capability[] {
   const has = (list: Predicate[]) => list.length > 0;
   const declared: Record<(typeof VOCAB_CAPABILITIES)[number], boolean> = {
-    test:
-      vocab.test.utils.length > 0 || vocab.test.marker !== null || vocab.test.container !== null,
+    test: vocab.test.callee !== null || vocab.test.marker !== null || vocab.test.container !== null,
     assert: has(vocab.assert),
     skip: vocab.skip.marker !== null || vocab.skip.modifiers.length > 0,
     sleep: has(vocab.sleep),
@@ -142,16 +148,29 @@ function rejectDuplicates(vocabs: Vocab[], which: string): void {
 function parseTest(value: unknown, source: string): VocabTest {
   const test = record(value, "test", source);
   rejectUnknown(test, TEST_KEYS, "test.", source);
-  const utils = strings(test.utils, "test.utils", source);
+  const callee = optionalString(test.callee, "test.callee", source);
   const marker = optionalString(test.marker, "test.marker", source);
   const container = optionalString(test.container, "test.container", source);
-  if (utils.length === 0 && marker === null && container === null) {
+  if (callee === null && marker === null && container === null) {
     throw new VocabError(
-      "test: needs one of utils, marker or container, or nothing can be found",
+      "test: needs one of callee, marker or container, or nothing can be found",
       source,
     );
   }
-  return { utils, marker, container, guard: guards(test.guard, source) };
+  // Compiled at load, so a broken regex is a vocabulary error rather than a
+  // first-file surprise.
+  if (callee !== null) new RegExp(callee);
+  if (marker !== null) new RegExp(marker);
+  return { callee, marker, container, guard: guards(test.guard, source) };
+}
+
+function parseSuite(value: unknown, source: string): VocabSuite {
+  if (value === undefined) return { callee: null };
+  const suite = record(value, "suite", source);
+  rejectUnknown(suite, SUITE_KEYS, "suite.", source);
+  const callee = optionalString(suite.callee, "suite.callee", source);
+  if (callee !== null) new RegExp(callee);
+  return { callee };
 }
 
 function parseStructure(value: unknown, source: string): VocabStructure {
@@ -205,6 +224,7 @@ function predicates(value: unknown, key: string, source: string): Predicate[] {
       );
     }
     const callee = optionalString(predicate.callee, `${where}.callee`, source);
+    if (callee !== null) new RegExp(callee);
     const keyword = optionalString(predicate.keyword, `${where}.keyword`, source);
     if (callee === null && keyword === null) {
       throw new VocabError(`${where}: needs callee or keyword`, source);
@@ -272,7 +292,7 @@ if (import.meta.vitest) {
   name: typescript
   grammars: [TypeScript, Tsx, JavaScript, Jsx]
   test:
-    utils: [test-call]
+    callee: "^(it|test)$"
     guard:
       - { kind: if_statement, condition: '^import' }
   structure:
@@ -290,7 +310,7 @@ if (import.meta.vitest) {
     const vocab = parseVocab(TS, "shipped/typescript.yml");
     expect(vocab.name).toBe("typescript");
     expect(vocab.grammars).toEqual(["TypeScript", "Tsx", "JavaScript", "Jsx"]);
-    expect(vocab.test.utils).toEqual(["test-call"]);
+    expect(vocab.test.callee).toBe("^(it|test)$");
     expect(vocab.assert).toHaveLength(1);
   });
 
