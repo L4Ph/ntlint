@@ -1,0 +1,41 @@
+{
+  "title": "Judge tests in four languages with ten rules",
+  "category": "enhancement",
+  "state": "ready-for-agent",
+  "what": "Running `test-lint check <paths>` finds the tests in TypeScript, Python, Rust and Go source -- including vitest in-source tests and Rust `#[cfg(test)] mod tests` inside production files -- asks Jev one question per rule per test, and reports findings in a fixed schema that an agent can act on and re-run to verify.",
+  "acceptance": [
+    {
+      "text": "Tests are found by construct rather than by file path, so in-source tests in production files are judged",
+      "done": false
+    },
+    {
+      "text": "Extraction agrees with each runner's own discovery: vp test list, pytest --collect-only -q, go test -list, cargo test -- --list",
+      "done": false
+    },
+    {
+      "text": "Two runs over the same input print identical findings, and --replay re-scores a recorded run without a request",
+      "done": false
+    },
+    {
+      "text": "A failed or unusable answer reports messageId missing and never reads as a clean result",
+      "done": false
+    },
+    {
+      "text": "--deterministic refuses a rule that declares model and the run makes no network request",
+      "done": false
+    },
+    {
+      "text": "The API key is absent from process.env while plugin code runs",
+      "done": false
+    },
+    {
+      "text": "Ten rules ship, each with a canary set, and each rule's precision and recall are in the README",
+      "done": false
+    },
+    {
+      "text": "Every finding carries ruleId, file, line and subjectSource",
+      "done": false
+    }
+  ],
+  "blockedBy": []
+}
