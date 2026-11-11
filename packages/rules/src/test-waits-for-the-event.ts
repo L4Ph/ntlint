@@ -14,9 +14,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "sleep"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test waits a fixed delay where waiting for the event would do.",
+  note: null,
   criteria: {
     true: "The delay stands in for an event the test could wait on -- a request, a render, a callback -- so the test is slower than it needs to be and fails on a loaded machine.",
     false:

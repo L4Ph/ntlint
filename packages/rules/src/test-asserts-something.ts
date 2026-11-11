@@ -15,9 +15,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "assert"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test asserts nothing about what the code did.",
+  note: null,
   criteria: {
     true: "No assertion in this body, and no call to a helper visible here that could assert, checks anything about the result.",
     false:

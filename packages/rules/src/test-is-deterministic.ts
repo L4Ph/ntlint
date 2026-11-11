@@ -13,9 +13,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "nondeterminism"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test reads the wall clock, randomness or a generated id directly, so the same code can produce a different result on another run.",
+  note: null,
   criteria: {
     true: "The value that decides the assertion comes from the real clock, real randomness or a real generated id, and nothing in the test pins it, so a run at another moment can disagree.",
     false:

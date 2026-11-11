@@ -75,7 +75,7 @@ if (import.meta.vitest) {
     loadRules(defs, {
       capabilities: ALL,
       deterministic: false,
-      strictCalibration: false,
+      fittedOnly: false,
       ...overrides,
     });
 
@@ -102,25 +102,25 @@ if (import.meta.vitest) {
     expect(result.skipped.every((s) => /--deterministic/.test(s.reason))).toBe(true);
   });
 
-  test("a strict run drops an uncalibrated rule, and says why", () => {
-    // A guessed cutoff presented as a fitted one is a number nobody can trust,
-    // so a run that insists on fitted cutoffs loses those rules on purpose.
-    const result = load(BUILTIN_RULES, { strictCalibration: true });
-    expect(result.rules.map((r) => r.id)).toEqual([
-      "test-name-describes-code",
-      "test-name-verifies-claim",
-      "test-mocks-subject",
-      "snapshot-only-behaviour-claim",
-      "describe-names-subject",
-    ]);
-    expect(result.skipped.filter((s) => /uncalibrated/.test(s.reason))).toHaveLength(12);
+  test("a fitted-only run drops every rule whose cutoff was measured elsewhere", () => {
+    // Nothing here has been measured against this repository's corpus, so a run
+    // that insists on fitted cutoffs has nothing to run. That is the truth, and
+    // printing it beats running seventeen borrowed thresholds as if they were ours.
+    const result = load(BUILTIN_RULES, { fittedOnly: true });
+    expect(result.rules).toHaveLength(0);
+    expect(result.skipped).toHaveLength(17);
   });
 
-  test("seventeen rules ship, five of them fitted", () => {
+  test("seventeen rules ship: five borrowed, twelve placeholders, none fitted here", () => {
     expect(BUILTIN_RULES).toHaveLength(17);
     for (const r of BUILTIN_RULES) expect(validateRule(r)).toEqual([]);
-    expect(BUILTIN_RULES.filter((r) => r.calibrated)).toHaveLength(5);
-    // Distinct ids, and each with a docs page a reader can open.
+    expect(BUILTIN_RULES.filter((r) => r.calibration === "fitted")).toHaveLength(0);
+    expect(BUILTIN_RULES.filter((r) => r.calibration === "borrowed")).toHaveLength(5);
+    expect(BUILTIN_RULES.filter((r) => r.calibration === "placeholder")).toHaveLength(12);
+    // A borrowed cutoff names where it came from, or a reader cannot check it.
+    for (const r of BUILTIN_RULES.filter((r) => r.calibration === "borrowed")) {
+      expect(r.calibrationSource).toMatch(/^jev-lint@[0-9a-f]+ /);
+    }
     expect(new Set(BUILTIN_RULES.map((r) => r.id)).size).toBe(17);
     for (const r of BUILTIN_RULES) expect(r.docs).toMatch(/^docs\/rules\/.*\.md$/);
   });

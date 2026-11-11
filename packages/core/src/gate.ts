@@ -74,10 +74,10 @@ export function decide(rule: Rule, subject: TestSubject, answer: Answer | null):
     return { ...decided, messageId: "unsure", reported: false };
   }
 
-  // An uncalibrated rule has a placeholder cutoff, so it can only ever produce a
-  // candidate: the rule runs, the signal is available, and nothing that was
-  // never fitted turns an exit code.
-  if (!rule.calibrated) {
+  // Only a cutoff fitted on this corpus can produce a violation. A borrowed one
+  // answered a question measured somewhere else, and a placeholder was never
+  // measured at all; both run, both are useful, and neither turns an exit code.
+  if (rule.calibration !== "fitted") {
     return { ...decided, messageId: "candidate", reported: true };
   }
 
@@ -177,6 +177,25 @@ if (import.meta.vitest) {
     expect(blocks([decide(rule({ severity: "error" }), subject(), answer(0.9))], "error")).toBe(
       true,
     );
+  });
+
+  test("a borrowed cutoff reports a candidate, never a violation", () => {
+    // The cutoff was measured on another corpus, against the same question. It
+    // is evidence; it is not this repository's own number.
+    const borrowed = rule({ calibration: "borrowed", calibrationSource: "jev-lint@af58a3b" });
+    const finding = decide(borrowed, subject(), answer(0.99));
+    expect(finding.messageId).toBe("candidate");
+    expect(blocks([finding], null)).toBe(false);
+  });
+
+  test("a placeholder cutoff reports a candidate, never a violation", () => {
+    const placeholder = rule({ calibration: "placeholder", calibrationSource: null });
+    expect(decide(placeholder, subject(), answer(0.99)).messageId).toBe("candidate");
+  });
+
+  test("only a cutoff fitted here can turn an exit code", () => {
+    const fitted = rule({ calibration: "fitted" });
+    expect(blocks([decide(fitted, subject(), answer(0.99))], null)).toBe(true);
   });
 
   test("a rule whose answer is unusable for it does not report one", () => {

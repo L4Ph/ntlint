@@ -13,9 +13,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "test"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "Another test in this file has the same name and checks the same thing, so one of them adds no coverage.",
+  note: null,
   criteria: {
     true: "The two bodies assert the same outcome from the same setup, so one of them can fail only when the other does.",
     false:

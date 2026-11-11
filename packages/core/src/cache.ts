@@ -31,7 +31,12 @@ export function verdictKey(input: { rule: Rule; subject: TestSubject; arm: strin
 
 /** Everything about a rule the model is shown, and nothing else. */
 export function ruleTextHash(rule: Rule): string {
-  return hash([rule.ask, canonicalJson(rule.levels), canonicalJson(rule.criteria)]);
+  return hash([
+    rule.ask,
+    rule.note ?? "",
+    canonicalJson(rule.levels),
+    canonicalJson(rule.criteria),
+  ]);
 }
 
 export function factsHash(facts: Facts): string {

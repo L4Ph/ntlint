@@ -14,9 +14,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "assert"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "The assertions check how a collaborator was called rather than what the code under test produced.",
+  note: null,
   criteria: {
     true: "The only checks are that a collaborator was called, how many times, or with what arguments, while the value, state or output this code produced is never examined.",
     false:

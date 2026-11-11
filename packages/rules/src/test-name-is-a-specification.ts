@@ -15,9 +15,11 @@ export default defineRule({
   severity: "info",
   requires: ["model", "test"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test's name does not state a behaviour and its expected result.",
+  note: null,
   criteria: {
     true: "The name says what is being tested rather than what should happen: a component or method name, a ticket number, a word like works, correctly or should work, or a restatement of the call.",
     false:

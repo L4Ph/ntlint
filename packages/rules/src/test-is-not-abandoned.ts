@@ -11,9 +11,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "skip"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test was left abandoned: skipped, focused, or a placeholder with no check, rather than a case the suite runs.",
+  note: null,
   criteria: {
     true: "The skip marker has outlived its reason: a placeholder body with no assertion, a case skipped with no reason recorded, or a focused test that silently stops the rest of the suite from running.",
     false:

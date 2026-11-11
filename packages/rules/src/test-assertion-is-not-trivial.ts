@@ -12,9 +12,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "assert"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "An assertion in this test compares a value with itself, so it cannot fail.",
+  note: null,
   criteria: {
     true: "The assertion is a placeholder: the expected value is the actual expression, the same literal on both sides, or a tautology such as asserting that a value equals itself.",
     false:

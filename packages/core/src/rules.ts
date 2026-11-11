@@ -7,7 +7,7 @@
  * an uncalibrated cutoff has to be asked for by name: a number presented as
  * fitted, and fitted to nothing, is worse than no rule at all.
  */
-import { CAPABILITIES, SEVERITIES } from "./types.ts";
+import { CALIBRATIONS, CAPABILITIES, SEVERITIES } from "./types.ts";
 import type { Capability, Rule, Severity } from "./types.ts";
 
 export class RuleError extends Error {
@@ -37,8 +37,8 @@ export interface LoadOptions {
   capabilities: ReadonlySet<Capability>;
   /** `--deterministic`: refuse anything that could make a run irreproducible. */
   deterministic: boolean;
-  /** `--strict-calibration`: drop rules whose cutoff is a placeholder. */
-  strictCalibration: boolean;
+  /** `--fitted-only`: drop every rule whose cutoff was not measured here. */
+  fittedOnly: boolean;
 }
 
 export interface LoadedRules {
@@ -84,10 +84,10 @@ export function loadRules(defs: readonly Rule[], options: LoadOptions): LoadedRu
       continue;
     }
 
-    if (!def.calibrated && options.strictCalibration) {
+    if (def.calibration !== "fitted" && options.fittedOnly) {
       skipped.push({
         id: def.id,
-        reason: "cutoff is uncalibrated; --strict-calibration drops it",
+        reason: `cutoff is ${def.calibration}, not fitted here; --fitted-only drops it`,
       });
       continue;
     }
@@ -110,6 +110,12 @@ export function validateRule(rule: Rule): string[] {
     reasons.push("docs is required: a finding an agent cannot look up is a guess");
   else if (!/^https?:\/\//.test(rule.docs) && !rule.docs.endsWith(".md")) {
     reasons.push("docs must be a URL or a path ending in .md");
+  }
+  if (!(CALIBRATIONS as readonly string[]).includes(rule.calibration)) {
+    reasons.push(`calibration "${rule.calibration}" is not one of ${CALIBRATIONS.join(", ")}`);
+  }
+  if (rule.calibration === "borrowed" && (rule.calibrationSource ?? "").trim() === "") {
+    reasons.push("a borrowed cutoff must name where it came from");
   }
   if (!(SEVERITIES as readonly string[]).includes(rule.severity)) {
     reasons.push(`severity "${rule.severity}" is not one of ${SEVERITIES.join(", ")}`);

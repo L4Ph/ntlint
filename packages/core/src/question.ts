@@ -24,6 +24,8 @@ export interface Question {
     task: string;
     statement: string;
     subject: string;
+    /** The rule's own exception, when it has one. */
+    also?: string;
     /** The test's own name, quoted so the model knows which claim is judged. */
     test: string;
     /** What the vocabulary resolved. Evidence, not a verdict. */
@@ -56,6 +58,7 @@ export function buildQuestion(rule: Rule, subject: TestSubject, id: string): Que
       task: TASK,
       statement: substitute(rule.ask, subject),
       subject: id,
+      ...(rule.note ? { also: rule.note } : {}),
       test: subject.name ?? subject.file,
       facts: subject.facts,
       code: subject.text,

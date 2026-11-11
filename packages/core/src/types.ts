@@ -178,6 +178,10 @@ export interface Answer {
   kind: "score" | "noul";
 }
 
+/** How a cutoff was obtained. See `Rule.calibration`. */
+export const CALIBRATIONS = ["fitted", "borrowed", "placeholder"] as const;
+export type Calibration = (typeof CALIBRATIONS)[number];
+
 export const SEVERITIES = ["off", "info", "warning", "error"] as const;
 export type Severity = (typeof SEVERITIES)[number];
 
@@ -218,6 +222,12 @@ export interface Rule {
   /** What this rule needs before it can say anything. */
   requires: Capability[];
   ask: string;
+  /**
+   * Context for the model only: the exception, the thing it must not read the
+   * ask as. Never shown in a finding, and part of the question, so part of the
+   * cache key. A cutoff fitted with a note is not a cutoff for the ask alone.
+   */
+  note: string | null;
   /** The two branches of a `noul`; shown to the model, so part of the question. */
   criteria: { true: string; false: string } | null;
   /** A `score` rule's ordered levels, when the answer is a conclusion. */
@@ -226,11 +236,14 @@ export interface Rule {
   /** The cutoff in force. Fitted, never guessed: see the rule's `docs`. */
   threshold: number;
   /**
-   * False means the cutoff is a placeholder this rule has not earned yet. Such
-   * a rule is skipped unless a run asks for it explicitly, because a guessed
-   * cutoff presented as a fitted one is a number nobody can trust.
+   * Where the cutoff came from. Only `fitted` may produce a violation, because
+   * only `fitted` means the threshold was measured against this repository's
+   * corpus. `borrowed` was measured somewhere else, against the same question;
+   * `placeholder` is a number nobody has measured at all.
    */
-  calibrated: boolean;
+  calibration: Calibration;
+  /** The file the borrowed cutoff came from, so a reader can check it. */
+  calibrationSource: string | null;
   /** False means the question is not worth spending a request on. */
   gate: ((test: TestSubject) => boolean) | null;
   /** False means the answer cannot be used as a verdict for this rule. */

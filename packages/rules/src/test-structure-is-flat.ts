@@ -14,9 +14,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "assert"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "The assertions in this test sit inside a loop or a conditional, so a changed branch could leave them never running.",
+  note: null,
   criteria: {
     true: "An assertion's pass or fail depends on a branch taken in the same body, so a test that reports success may have checked nothing on the path that ran.",
     false:

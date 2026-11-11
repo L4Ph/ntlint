@@ -13,9 +13,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "doubles"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test replaces a collaborator the project owns with a double, so the test passes while the real collaboration is broken.",
+  note: null,
   criteria: {
     true: "The double stands in for code in this repository -- another module, service or repository this project writes -- so the test never exercises the real contract between them.",
     false:

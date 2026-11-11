@@ -13,9 +13,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "io"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test reaches the network, the filesystem or a subprocess, so it cannot be the small test its position in the suite claims.",
+  note: null,
   criteria: {
     true: "The test's own behaviour depends on a system outside this process -- a request, a file it reads or writes, a command it runs -- and nothing in the test replaces that system.",
     false:

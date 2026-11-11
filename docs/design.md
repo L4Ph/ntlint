@@ -332,16 +332,36 @@ jev-lint holds itself to.
 
 ## v0.1 rules
 
-Seventeen rules ship. Five are ported from jev-lint with the cutoffs fitted on
-its own fixtures, and their sentences and criteria travel with the cutoffs,
-because a cutoff fitted to one sentence is not a cutoff for another:
+Seventeen rules ship. **None of their cutoffs was fitted here**, and the model
+says so rather than implying otherwise:
 
-`test-name-describes-code` (0.72), `test-name-verifies-claim` (0.66),
-`test-mocks-subject` (0.30), `snapshot-only-behaviour-claim` (0.67),
-`describe-names-subject` (0.45, on a suite subject).
+| provenance    | count | what it means                                                                |
+| ------------- | ----- | ---------------------------------------------------------------------------- |
+| `fitted`      | 0     | measured against this repository's corpus                                    |
+| `borrowed`    | 5     | measured by jev-lint on its fixtures, against the same question              |
+| `placeholder` | 12    | never measured; the number only decides whether a candidate is worth showing |
 
-Twelve are new and ship with `calibrated: false`. Each is gated by a fact so it
-asks only where the question can be answered:
+```ts
+calibration: "borrowed",
+calibrationSource: "jev-lint@af58a3b rules/typescript/test-mocks-subject/rule.yml",
+threshold: 0.3,
+```
+
+**Only `fitted` can produce a violation.** A borrowed cutoff was measured on a
+different corpus; a placeholder was never measured at all. Both run, both appear
+as candidates, and neither turns an exit code. `--fitted-only` drops everything
+that is not fitted, which on today's tree means everything: printing that is
+better than running seventeen borrowed thresholds as though they were ours.
+
+The five borrowed rules carry jev-lint's sentence, criteria **and note**
+verbatim, because the cutoff was fitted against all three together. jev-lint
+records that the note for `test-name-verifies-claim` moved label-only snapshot
+cleans from 0.50-0.55 to 0.32-0.41 while holding the defects at 0.55-0.76: a
+cutoff belongs to the question, not to the sentence alone. `note` is part of the
+payload and part of the cache key for that reason.
+
+The twelve new rules carry no note and ship with `calibration: "placeholder"`.
+Each is gated by a fact so it asks only where the question can be answered:
 
 | rule                              | asked of                                   |
 | --------------------------------- | ------------------------------------------ |
@@ -358,15 +378,16 @@ asks only where the question can be answered:
 | `test-is-deterministic`           | tests reading a clock, randomness or an id |
 | `unit-test-has-no-io`             | tests touching the filesystem or network   |
 
-**An uncalibrated rule runs, but it can only produce a candidate**, and
-`--strict-calibration` drops it. A guessed cutoff presented as a fitted one is a
-number nobody can trust, and a rule that never runs because its cutoff is a
-placeholder is the same as no rule at all. A candidate is the middle: the signal
-is available, and nothing unfitted turns an exit code.
-
 One of jev-lint's test rules is deliberately absent. `tests-cover-failure-paths`
 pairs a function with the tests that reach it, which is a subject shape v0.1
 does not have; shipping it as a test rule would judge the wrong thing.
+
+### Fitting a cutoff
+
+`jev-lint gaps` first: a rule whose answers are bunched together has no cutoff
+that helps, and the sentence needs rewriting. Then labels, then a fit, then the
+same fit again to see how far it moves. A cutoff is a claim about one corpus,
+and the provenance field is what keeps the claim checkable.
 
 ## Open questions
 

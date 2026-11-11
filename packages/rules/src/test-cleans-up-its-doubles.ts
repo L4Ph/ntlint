@@ -13,9 +13,11 @@ export default defineRule({
   severity: "warning",
   requires: ["model", "doubles", "hooks"],
   kind: "noul",
-  calibrated: false,
+  calibration: "placeholder",
+  calibrationSource: null,
   threshold: 0.5,
   ask: "This test installs a double and leaves it installed, so a later test in the same file can see it.",
+  note: null,
   criteria: {
     true: "The double replaces something shared -- a module, a global, a clock -- and nothing in this test or its suite's teardown restores it, so the next test runs against the double.",
     false:
