@@ -1,7 +1,6 @@
 {
   "name": "test-lint",
   "version": "0.1.0",
-  "private": true,
   "description": "A linter for tests: one rule across languages, judged by a classifier, printed for an agent.",
   "keywords": [
     "agent",
