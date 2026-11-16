@@ -1,6 +1,14 @@
 packages:
   - packages/*
 
+# The @ast-grep/lang-* packages ship prebuilt parsers for common platforms; their
+# postinstall only fetches one where none ships. Both languages parse here without
+# it, and a dependency's install script is not something this repository runs by
+# default -- a consumer's package manager makes that call, not us.
+allowBuilds:
+  "@ast-grep/lang-go": false
+  "@ast-grep/lang-python": false
+  "@ast-grep/lang-rust": false
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.6.0
   vite-plus: 1.6.0
