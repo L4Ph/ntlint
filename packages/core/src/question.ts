@@ -28,6 +28,8 @@ export interface Question {
     also?: string;
     /** The test's own name, quoted so the model knows which claim is judged. */
     test: string;
+    /** The test's lines in the file the state carries. */
+    lines: string;
     /** What the vocabulary resolved. Evidence, not a verdict. */
     facts: Facts;
     code: string;
@@ -60,6 +62,8 @@ export function buildQuestion(rule: Rule, subject: TestSubject, id: string): Que
       subject: id,
       ...(rule.note ? { also: rule.note } : {}),
       test: subject.name ?? subject.file,
+      lines:
+        subject.line === subject.endLine ? `${subject.line}` : `${subject.line}-${subject.endLine}`,
       facts: subject.facts,
       code: subject.text,
     },

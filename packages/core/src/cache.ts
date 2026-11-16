@@ -12,6 +12,10 @@
  * - `factsHash` -- what the vocabulary extracted. Without it, fixing a
  *   vocabulary keeps serving verdicts formed from the old, wrong facts.
  * - `arm` -- the same subject at another arm was shown different evidence.
+ * - `stateHash` -- the file the subject was read in. A rule asking whether a
+ *   test would catch a broken behaviour cannot answer from the test alone, so
+ *   the implementation is part of the evidence, and editing it must invalidate
+ *   the verdict.
  * - `subjectText` -- not the line number, which moves for free.
  *
  * `threshold` is deliberately absent. Adding it would make every recalibration
@@ -24,9 +28,23 @@ import { rule, subject } from "./testing/builders.ts";
 /** Changing the payload shape is a cache flush, and that is the intent. */
 export const SCHEMA = "test-lint-verdict-1";
 
-export function verdictKey(input: { rule: Rule; subject: TestSubject; arm: string }): string {
-  const { rule, subject, arm } = input;
-  return hash([SCHEMA, rule.id, ruleTextHash(rule), factsHash(subject.facts), arm, subject.text]);
+export function verdictKey(input: {
+  rule: Rule;
+  subject: TestSubject;
+  arm: string;
+  /** The evidence shown beside the subject. Part of the question, not context. */
+  state?: string;
+}): string {
+  const { rule, subject, arm, state = "" } = input;
+  return hash([
+    SCHEMA,
+    rule.id,
+    ruleTextHash(rule),
+    factsHash(subject.facts),
+    arm,
+    hash([state]),
+    subject.text,
+  ]);
 }
 
 /** Everything about a rule the model is shown, and nothing else. */
@@ -133,6 +151,15 @@ if (import.meta.vitest) {
     // though they are not the sentence.
     const withCriteria = rule({ criteria: { true: "…", false: "…" } });
     expect(key({ rule: withCriteria })).not.toBe(key());
+  });
+
+  test("a change to the file invalidates the verdict", () => {
+    // The implementation is evidence: a rule asking whether a test would catch a
+    // broken behaviour cannot answer without it, so editing it must re-ask.
+    const base = { rule: rule(), subject: subject(), arm: "file" };
+    expect(verdictKey({ ...base, state: "const f = 1;" })).not.toBe(
+      verdictKey({ ...base, state: "const f = 2;" }),
+    );
   });
 
   test("a different state arm is a different question", () => {

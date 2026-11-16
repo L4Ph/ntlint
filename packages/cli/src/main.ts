@@ -53,6 +53,8 @@ export interface Options {
   fittedOnly: boolean;
   /** Where the verdict cache lives, or `none` to run without one. */
   cache: string;
+  /** The evidence arm: `file` sends the implementation, `bare` does not. */
+  arm: "file" | "bare";
   help: boolean;
 }
 
@@ -66,6 +68,7 @@ usage:
   test-lint check --pretty          for a terminal
   test-lint check --github          GitHub annotations
   test-lint check --fitted-only     drop every rule whose cutoff was not fitted here
+  test-lint check --arm <arm>       file (default: send the implementation) | bare
   test-lint check --cache <path>    verdict cache (default ${DEFAULT_CACHE}; 'none' disables)
 
 The key comes from the environment and from nowhere else. Node can load a file:
@@ -80,6 +83,7 @@ export function parseArgs(argv: string[]): Options {
     dryRun: false,
     fittedOnly: false,
     cache: DEFAULT_CACHE,
+    arm: "file",
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -99,6 +103,13 @@ export function parseArgs(argv: string[]): Options {
         throw new Error(`unknown format: ${next}`);
       }
       options.format = next as Format;
+      i += 1;
+      continue;
+    }
+    if (arg === "--arm") {
+      const next = argv[i + 1];
+      if (next !== "file" && next !== "bare") throw new Error("--arm needs file or bare");
+      options.arm = next;
       i += 1;
       continue;
     }
@@ -180,20 +191,23 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
   if (options.dryRun) {
     // Price the run by building the questions it would send. No request is made,
     // and the estimate is the one the client uses, so the quote and the bill
-    // come from the same arithmetic.
-    const questions = subjects.flatMap((subject) =>
-      rules
-        .filter((rule) => rule.gate === null || rule.gate(subject))
-        .map((rule) => buildQuestion(rule, subject, questionId(0))),
-    );
+    // come from the same arithmetic. The state travels once per file.
     let tokens = 0;
-    for (let i = 0; i < questions.length; i += 64) {
-      tokens += estimateTokens(
-        JSON.stringify({ state: "", questions: questions.slice(i, i + 64) }),
+    let count = 0;
+    for (const [file, group] of groupByFile(subjects)) {
+      const asked = group.flatMap((subject) =>
+        rules
+          .filter((rule) => rule.gate === null || rule.gate(subject))
+          .map((rule) => buildQuestion(rule, subject, questionId(0))),
       );
+      count += asked.length;
+      const state = options.arm === "file" ? (fileText(cwd, file) ?? "") : "";
+      for (let i = 0; i < asked.length; i += 64) {
+        tokens += estimateTokens(JSON.stringify({ state, questions: asked.slice(i, i + 64) }));
+      }
     }
     const usd = (tokens / 1_000_000) * USD_PER_MTOK;
-    out(`${subjects.length} test(s) in ${files.length} file(s); ${questions.length} question(s)`);
+    out(`${subjects.length} test(s) in ${files.length} file(s); ${count} question(s)`);
     out(
       `about ${tokens.toLocaleString()} input tokens, $${usd.toFixed(4)} at $${USD_PER_MTOK}/Mtok`,
     );
@@ -210,7 +224,20 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
 
   let result;
   try {
-    result = await run({ subjects, rules, client, cache: cache ?? undefined });
+    result = await run({
+      subjects,
+      rules,
+      client,
+      cache: cache ?? undefined,
+      arm: options.arm,
+      fileText: (file) => {
+        try {
+          return readFileSync(join(cwd, file), "utf-8");
+        } catch {
+          return null;
+        }
+      },
+    });
   } catch (error) {
     // A configuration or auth failure is a message, not a stack: retrying does
     // not help and the stack buries the reason.
@@ -261,6 +288,24 @@ function loadRuleSet(fittedOnly: boolean): Rule[] {
   // A rule that needs a capability no vocabulary declares is dropped, and the
   // reason is printed by `--dry-run` once that exists.
   return fittedOnly ? BUILTIN_RULES.filter((r) => r.calibration === "fitted") : [...BUILTIN_RULES];
+}
+
+function groupByFile(subjects: TestSubject[]): Map<string, TestSubject[]> {
+  const groups = new Map<string, TestSubject[]>();
+  for (const subject of subjects) {
+    const list = groups.get(subject.file) ?? [];
+    list.push(subject);
+    groups.set(subject.file, list);
+  }
+  return groups;
+}
+
+function fileText(cwd: string, file: string): string | null {
+  try {
+    return readFileSync(join(cwd, file), "utf-8");
+  } catch {
+    return null;
+  }
 }
 
 function extractFile(file: string, language: LanguageDefinition, cwd: string): TestSubject[] {

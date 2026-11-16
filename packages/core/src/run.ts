@@ -3,9 +3,18 @@
  *
  * The pipeline is one pass: a rule's `gate` drops the pairs where the question
  * cannot be answered, the cache answers the ones it has seen, and what is left
- * is packed into requests. State is empty for the `bare` arm -- the test's own
- * text travels in each question -- so a request is a bag of independent
- * questions and nothing in it depends on which test sits next to which.
+ * is packed into requests.
+ *
+ * **The state is the file.** A test body alone cannot answer "would this test
+ * still pass if the named behaviour were broken": the behaviour is in the
+ * implementation the test calls, and in this repository that implementation is
+ * usually in the same file. Sending the test and nothing else made that question
+ * unanswerable, and the model answered it anyway -- which is how a run produced
+ * a candidate list that was mostly wrong.
+ *
+ * So questions are grouped by file, one request carries that file once, and each
+ * question says which lines of it are the test. `--arm bare` exists for a rule
+ * set that genuinely needs only the body, and its verdicts are cached apart.
  *
  * A request that fails is not a clean result: every pair in it becomes
  * `missing`, which the report counts and no exit code ignores.
@@ -21,8 +30,10 @@ export interface RunOptions {
   rules: readonly Rule[];
   client: AskClient;
   cache?: Cache;
-  /** The evidence arm in force. `bare` is the default: the test is the question. */
+  /** The evidence arm. `file` is the default: the implementation is evidence. */
   arm?: string;
+  /** The file's own text, for the state. Without it, the state is empty. */
+  fileText?: ((file: string) => string | null) | null;
   /** How many questions one request may carry. */
   maxQuestions?: number;
   onProgress?: ((message: string) => void) | null;
@@ -52,7 +63,7 @@ interface Pair {
 
 export async function run(options: RunOptions): Promise<RunResult> {
   const { subjects, rules, client } = options;
-  const arm = options.arm ?? "bare";
+  const arm = options.arm ?? "file";
   const maxQuestions = options.maxQuestions ?? 64;
   const cache = options.cache;
 
@@ -63,7 +74,8 @@ export async function run(options: RunOptions): Promise<RunResult> {
       const kind = subject.subjectSource === "suite" ? "suite" : "test";
       if (rule.subject !== "any" && rule.subject !== kind) continue;
       if (rule.gate !== null && !rule.gate(subject)) continue;
-      const key = verdictKey({ rule, subject, arm });
+      const state = arm === "file" ? (options.fileText?.(subject.file) ?? "") : "";
+      const key = verdictKey({ rule, subject, arm, state });
       const cached = cache?.get(key) ?? null;
       pairs.push({ rule, subject, key, answer: cached });
     }
