@@ -19,9 +19,13 @@ const regex = v.string();
 const strings = v.optional(v.array(v.string()), []);
 
 export const PredicateSchema = v.strictObject({
-  shape: v.optional(v.picklist(["call", "method", "macro", "statement"]), "call"),
   callee: v.optional(v.nullable(regex), null),
-  keyword: v.optional(v.nullable(v.string()), null),
+  /**
+   * Import sources that make this callee trustworthy. A name is not enough:
+   * `expect` is also an ordinary identifier, so a call is rejected when it is
+   * imported from somewhere else. A name with no import at all is kept, because
+   * the frameworks define these as globals.
+   */
   importedFrom: strings,
 });
 
@@ -51,7 +55,6 @@ export const SuiteSchema = v.strictObject({
 export const StructureSchema = v.strictObject({
   loop: strings,
   conditional: strings,
-  try: strings,
   call: strings,
 });
 
@@ -65,7 +68,7 @@ export const VocabSchema = v.strictObject({
   grammars: v.pipe(v.array(v.string()), v.minLength(1)),
   test: TestSchema,
   suite: v.optional(SuiteSchema, { callee: null }),
-  structure: v.optional(StructureSchema, { loop: [], conditional: [], try: [], call: [] }),
+  structure: v.optional(StructureSchema, { loop: [], conditional: [], call: [] }),
   assert: v.optional(v.array(PredicateSchema), []),
   double: v.optional(v.array(PredicateSchema), []),
   sleep: v.optional(v.array(PredicateSchema), []),
@@ -75,7 +78,6 @@ export const VocabSchema = v.strictObject({
   snapshotMatchers: strings,
   io: v.optional(v.array(PredicateSchema), []),
   nondeterminism: v.optional(v.array(PredicateSchema), []),
-  async: v.optional(v.boolean(), false),
 });
 
 /** What a vocabulary file says. The loader adds `source`. */

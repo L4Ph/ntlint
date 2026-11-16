@@ -22,7 +22,6 @@ export const CAPABILITIES = [
   "doubles",
   "hooks",
   "snapshot",
-  "async",
   "io",
   "nondeterminism",
   // from the runner: what a rule is allowed to touch
@@ -53,7 +52,6 @@ export const VOCAB_CAPABILITIES = [
   "doubles",
   "hooks",
   "snapshot",
-  "async",
   "io",
   "nondeterminism",
 ] as const satisfies readonly Capability[];

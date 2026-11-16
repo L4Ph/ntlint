@@ -75,6 +75,7 @@ export function extract(source: string, file: string, vocab: Vocab): TestSubject
     }
   }
 
+  const imports = importsOf(root);
   const names = tests.map((node) => nameOf(node, vocab));
   const subjects = [
     ...tests.map((node) => {
@@ -86,10 +87,13 @@ export function extract(source: string, file: string, vocab: Vocab): TestSubject
         grammar,
         false,
         name,
+        imports,
         name !== null && names.filter((n) => n === name).length > 1,
       );
     }),
-    ...suites.map((node) => subject(node, file, vocab, grammar, true, stringArgument(node), false)),
+    ...suites.map((node) =>
+      subject(node, file, vocab, grammar, true, stringArgument(node), imports, false),
+    ),
   ];
   return subjects.sort((a, b) => a.line - b.line);
 }
@@ -101,6 +105,7 @@ function subject(
   grammar: string,
   isSuite: boolean,
   name: string | null,
+  imports: Imports,
   duplicateName: boolean,
 ): TestSubject {
   const range = node.range();
@@ -117,7 +122,7 @@ function subject(
     text: node.text(),
     line: range.start.line + 1,
     endLine: range.end.line + 1,
-    facts: isSuite ? emptyFacts() : factsOf(node, vocab, duplicateName),
+    facts: isSuite ? emptyFacts() : factsOf(node, vocab, duplicateName, imports),
   };
 }
 
@@ -140,7 +145,12 @@ function emptyFacts(): Facts {
 }
 
 /** Count what a rule can read, inside one test. */
-export function factsOf(test: SgNode, vocab: Vocab, duplicateName = false): Facts {
+export function factsOf(
+  test: SgNode,
+  vocab: Vocab,
+  duplicateName = false,
+  imports: Imports = new Map(),
+): Facts {
   const facts = { ...emptyFacts(), duplicateName, skip: skipOf(vocab, test) };
   const guards = guardsAround(test, vocab);
 
@@ -151,18 +161,18 @@ export function factsOf(test: SgNode, vocab: Vocab, duplicateName = false): Fact
 
     const callee = calleeText(node) ?? "";
     const base = calleeBase(node);
-    if (matchesAny(vocab.double, callee, base, node)) facts.doubles += 1;
-    if (matchesAny(vocab.sleep, callee, base, node)) facts.sleeps += 1;
-    if (matchesAny(vocab.io, callee, base, node)) facts.io += 1;
-    if (matchesAny(vocab.nondeterminism, callee, base, node)) facts.nondeterminism += 1;
-    if (matchesAny(vocab.hooks, callee, base, node) && nodeKey(node) !== nodeKey(test))
+    if (matchesAny(vocab.double, callee, base, node, imports)) facts.doubles += 1;
+    if (matchesAny(vocab.sleep, callee, base, node, imports)) facts.sleeps += 1;
+    if (matchesAny(vocab.io, callee, base, node, imports)) facts.io += 1;
+    if (matchesAny(vocab.nondeterminism, callee, base, node, imports)) facts.nondeterminism += 1;
+    if (matchesAny(vocab.hooks, callee, base, node, imports) && nodeKey(node) !== nodeKey(test))
       facts.hooks += 1;
 
     // `expect(x).toBe(y)` is one assertion whose callee is the whole chain; the
     // predicate names `expect`, which is the chain's base. The inner `expect(x)`
     // matches the same predicate and is not a second assertion.
     if (isAssertionReceiver(node)) continue;
-    if (!matchesAny(vocab.assert, callee, base, node)) continue;
+    if (!matchesAny(vocab.assert, callee, base, node, imports)) continue;
     facts.assertions += 1;
     if (vocab.interactionMatchers.some((m) => callee.endsWith(`.${m}`) || callee === m)) {
       facts.interactionAssertions += 1;
@@ -221,13 +231,57 @@ function markerMatches(marker: string | null, text: string): boolean {
   return marker !== null && new RegExp(marker).test(text);
 }
 
-function matchesAny(predicates: Predicate[], callee: string, base: string, node: SgNode): boolean {
+function matchesAny(
+  predicates: Predicate[],
+  callee: string,
+  base: string,
+  node: SgNode,
+  imports: Imports,
+): boolean {
   return predicates.some((p) => {
-    if (p.keyword !== null) return node.text().startsWith(p.keyword);
     if (p.callee === null) return false;
     const re = new RegExp(p.callee);
-    return re.test(callee) || re.test(base);
+    if (!re.test(callee) && !re.test(base)) return false;
+    // A name is not an identity: `expect` imported from somewhere else is not
+    // this framework's `expect`. A name with no import is a global, and kept.
+    const source = imports.get(base);
+    return p.importedFrom.length === 0 || source === undefined || p.importedFrom.includes(source);
   });
+}
+
+/** Local name to the module it came from, including an in-source destructure. */
+type Imports = Map<string, string>;
+
+function importsOf(root: SgNode): Imports {
+  const imports: Imports = new Map();
+  for (const node of walk(root)) {
+    const kind = String(node.kind());
+    if (kind === "import_statement") {
+      const text = node.text();
+      const source = /from\s+["']([^"']+)["']/.exec(text)?.[1];
+      if (source === undefined) continue;
+      const braces = /\{([^}]*)\}/.exec(text)?.[1];
+      const names =
+        braces === undefined
+          ? []
+          : braces.split(",").map((n) =>
+              n
+                .trim()
+                .split(/\s+as\s+/)
+                .pop()!,
+            );
+      const fallback = /^import\s+(?:type\s+)?([A-Za-z_$][\w$]*)/.exec(text)?.[1];
+      for (const name of [...names, fallback ?? ""].filter(Boolean)) imports.set(name, source);
+    }
+    // `const { it, expect } = import.meta.vitest` names the same functions.
+    if (kind === "variable_declarator" && /import\.meta\.vitest/.test(node.text())) {
+      const pattern = /\{([^}]*)\}/.exec(node.text())?.[1];
+      for (const name of (pattern ?? "").split(",").map((n) => n.trim().split(":").pop()!.trim())) {
+        if (name !== "") imports.set(name, "import.meta.vitest");
+      }
+    }
+  }
+  return imports;
 }
 
 /** The first argument of a call, as text. */
@@ -436,6 +490,39 @@ describe("cart", () => {
   test("an assertion comparing a value with itself is trivial", () => {
     const [s] = extract('it("x", () => { expect(v).toBe(v); });', "a.test.ts", VOCAB);
     expect(s?.facts.trivialAssertions).toBe(1);
+  });
+
+  test("an assertion imported from somewhere else is not this framework's", () => {
+    // `expect` is an ordinary identifier; only the import source says whose.
+    const [chai] = extract(
+      'import { expect } from "chai";\nit("x", () => { expect(1).toBe(2); });',
+      "a.test.ts",
+      VOCAB,
+    );
+    expect(chai?.facts.assertions).toBe(0);
+
+    const [vitest] = extract(
+      'import { expect } from "vitest";\nit("x", () => { expect(1).toBe(2); });',
+      "a.test.ts",
+      VOCAB,
+    );
+    expect(vitest?.facts.assertions).toBe(1);
+  });
+
+  test("a global assertion with no import at all is still an assertion", () => {
+    // The frameworks define these as globals, so a missing import is not a
+    // reason to say the test asserts nothing.
+    const [s] = extract('it("x", () => { expect(1).toBe(2); });', "a.test.ts", VOCAB);
+    expect(s?.facts.assertions).toBe(1);
+  });
+
+  test("an in-source destructure names the framework's assertion", () => {
+    const src = `if (import.meta.vitest) {
+      const { it, expect } = import.meta.vitest;
+      it("x", () => { expect(1).toBe(2); });
+    }`;
+    const [s] = extract(src, "src/a.ts", VOCAB);
+    expect(s?.facts.assertions).toBe(1);
   });
 
   test("a grammar no vocabulary covers yields nothing rather than a wrong answer", () => {

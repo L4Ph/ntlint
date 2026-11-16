@@ -66,7 +66,6 @@ if (import.meta.vitest) {
     "doubles",
     "hooks",
     "snapshot",
-    "async",
     "io",
     "nondeterminism",
   ]);

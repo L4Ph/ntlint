@@ -86,7 +86,6 @@ export function derivedCapabilities(vocab: Vocab): Capability[] {
     doubles: has(vocab.double),
     hooks: has(vocab.hooks),
     snapshot: has(vocab.snapshotMatchers),
-    async: vocab.async,
     io: has(vocab.io),
     nondeterminism: has(vocab.nondeterminism),
   };
@@ -138,7 +137,6 @@ if (import.meta.vitest) {
   structure:
     loop: [for_statement]
     conditional: [if_statement]
-    try: [try_statement]
     call: [call_expression]
   assert:
     - { callee: "^expect$", importedFrom: [vitest, import.meta.vitest] }

@@ -127,13 +127,6 @@
           },
           "default": []
         },
-        "try": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": []
-        },
         "call": {
           "type": "array",
           "items": {
@@ -147,7 +140,6 @@
       "default": {
         "loop": [],
         "conditional": [],
-        "try": [],
         "call": []
       }
     },
@@ -156,23 +148,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "shape": {
-            "enum": ["call", "method", "macro", "statement"],
-            "type": "string",
-            "default": "call"
-          },
           "callee": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "keyword": {
             "anyOf": [
               {
                 "type": "string"
@@ -201,23 +177,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "shape": {
-            "enum": ["call", "method", "macro", "statement"],
-            "type": "string",
-            "default": "call"
-          },
           "callee": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "keyword": {
             "anyOf": [
               {
                 "type": "string"
@@ -246,23 +206,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "shape": {
-            "enum": ["call", "method", "macro", "statement"],
-            "type": "string",
-            "default": "call"
-          },
           "callee": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "keyword": {
             "anyOf": [
               {
                 "type": "string"
@@ -320,23 +264,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "shape": {
-            "enum": ["call", "method", "macro", "statement"],
-            "type": "string",
-            "default": "call"
-          },
           "callee": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "keyword": {
             "anyOf": [
               {
                 "type": "string"
@@ -379,23 +307,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "shape": {
-            "enum": ["call", "method", "macro", "statement"],
-            "type": "string",
-            "default": "call"
-          },
           "callee": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "keyword": {
             "anyOf": [
               {
                 "type": "string"
@@ -424,23 +336,7 @@
       "items": {
         "type": "object",
         "properties": {
-          "shape": {
-            "enum": ["call", "method", "macro", "statement"],
-            "type": "string",
-            "default": "call"
-          },
           "callee": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null
-          },
-          "keyword": {
             "anyOf": [
               {
                 "type": "string"
@@ -463,10 +359,6 @@
         "additionalProperties": false
       },
       "default": []
-    },
-    "async": {
-      "type": "boolean",
-      "default": false
     }
   },
   "required": ["name", "grammars", "test"],

@@ -232,10 +232,16 @@ sleep:
 ```
 
 `assert`, `double`, `sleep` and `skip` are **predicates over a node**, not
-names: a callee pattern, optionally an import source or an argument shape. A
-bare name is not enough -- `assert` is also a variable name. Python's assertion
-is a statement, Rust's is a macro, Go's is a method call, so each entry carries
-a `shape`.
+names: a callee pattern plus the import sources that make it trustworthy. A name
+is not an identity -- `expect` is also an ordinary identifier -- so a call is
+rejected when it is imported from somewhere the vocabulary does not name. A name
+with no import at all is kept, because the frameworks define these as globals.
+
+Every field in a vocabulary is read by the extractor. Fields that were declared
+and never read (`structure.try`, `async`, a predicate's `shape`) were removed
+rather than left as an accurate-looking description of something the tool does
+not do; Python's statement-shaped assertion returns with the Python extractor,
+where it will be read on the day it is written.
 
 A rule never names a language. It reads `test.facts.*` and `test.body`, and
 `requires:` names the capabilities it needs (`snapshot`, `async`, `doubles`,
