@@ -1,5 +1,5 @@
 {
-  "name": "agent-testlint",
+  "name": "noul-testlint",
   "version": "0.1.0",
   "description": "A linter for tests: one rule across languages, judged by a classifier, printed for an agent.",
   "keywords": [
