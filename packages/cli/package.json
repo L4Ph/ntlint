@@ -4,7 +4,7 @@
   "private": true,
   "description": "The command line: check, dry-run, and the report.",
   "bin": {
-    "test-lint": "./src/main.ts"
+    "ntlint": "./src/main.ts"
   },
   "type": "module",
   "exports": {

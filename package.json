@@ -20,7 +20,7 @@
     "url": "git+https://github.com/L4Ph/test-lint.git"
   },
   "bin": {
-    "test-lint": "./dist/main.mjs"
+    "ntlint": "./dist/main.mjs"
   },
   "files": [
     "dist",

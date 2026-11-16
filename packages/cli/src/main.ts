@@ -65,18 +65,18 @@ export interface Options {
   help: boolean;
 }
 
-const USAGE = `test-lint -- a linter for tests: one rule across languages, judged by a model
+const USAGE = `ntlint -- a linter for tests: one rule across languages, judged by a model
 
 usage:
-  test-lint check [paths...]        judge the tests under these paths (default: .)
-  test-lint check --dry-run         what it would ask, and the price. No request.
-  test-lint check                   findings as JSON lines, then a summary (default)
-  test-lint check --format json     one JSON document
-  test-lint check --pretty          for a terminal
-  test-lint check --github          GitHub annotations
-  test-lint check --fitted-only     drop every rule whose cutoff was not fitted here
-  test-lint check --arm <arm>       file (default: send the implementation) | bare
-  test-lint check --cache <path>    verdict cache (default ${DEFAULT_CACHE}; 'none' disables)
+  ntlint check [paths...]        judge the tests under these paths (default: .)
+  ntlint check --dry-run         what it would ask, and the price. No request.
+  ntlint check                   findings as JSON lines, then a summary (default)
+  ntlint check --format json     one JSON document
+  ntlint check --pretty          for a terminal
+  ntlint check --github          GitHub annotations
+  ntlint check --fitted-only     drop every rule whose cutoff was not fitted here
+  ntlint check --arm <arm>       file (default: send the implementation) | bare
+  ntlint check --cache <path>    verdict cache (default ${DEFAULT_CACHE}; 'none' disables)
 
 The key comes from the environment and from nowhere else. Node can load a file:
   node --env-file=.env packages/cli/src/main.ts check packages
@@ -248,7 +248,7 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
   } catch (error) {
     // A configuration or auth failure is a message, not a stack: retrying does
     // not help and the stack buries the reason.
-    err(error instanceof JevError ? `test-lint: ${error.message}` : String(error));
+    err(error instanceof JevError ? `ntlint: ${error.message}` : String(error));
     return 2;
   }
 

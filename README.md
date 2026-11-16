@@ -1,7 +1,8 @@
-# test-lint
+# noul-testlint
 
-A linter for tests. One rule applies to every language, and the verdict comes from
-a classifier that answers a natural-language question with a probability.
+A linter for tests. One rule applies to every language, and the verdict comes
+from a classifier that answers a natural-language question with a probability.
+The command is `ntlint`.
 
 ```
 $ npx noul-testlint check src --dry-run
@@ -26,7 +27,7 @@ already decides. Those belong to the tools you already run.
 ```bash
 npm install --save-dev noul-testlint
 export TYPESAFE_API_KEY=...      # https://typesafe.ai; the key comes from the environment only
-npx noul-testlint check src
+npx ntlint check src
 ```
 
 `--dry-run` prices a run and makes no request, so it needs no key.
