@@ -1,7 +1,7 @@
 /**
  * What a language looks like to a rule.
  *
- * A vocabulary is the only language-dependent artifact in the tool. Rules read
+ * A language is the only language-dependent artifact in the tool. Rules read
  * `TestSubject` fields and never name a language; this file is what turns a
  * grammar into those fields.
  *
@@ -12,9 +12,9 @@
  * - `null` means "known to be absent", `undefined` means "not applicable".
  */
 
-/** What a rule or a vocabulary needs before it can say anything. */
+/** What a rule or a language needs before it can say anything. */
 export const CAPABILITIES = [
-  // from the vocabulary: what the language can be asked about
+  // from the language: what it can be asked about
   "test",
   "assert",
   "skip",
@@ -31,19 +31,7 @@ export const CAPABILITIES = [
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
-// The vocabulary's shape is defined once, by its valibot schema, and inferred
-// here so the loader, the type and the emitted JSON Schema cannot disagree.
-export type {
-  Guard,
-  Predicate,
-  Vocab,
-  VocabSkip,
-  VocabStructure,
-  VocabSuite,
-  VocabTest,
-} from "./schema.ts";
-
-/** A vocabulary's own capabilities, derived from what it declares. */
+/** A language's own capabilities, derived from what it can find. */
 export const VOCAB_CAPABILITIES = [
   "test",
   "assert",
@@ -59,9 +47,8 @@ export const VOCAB_CAPABILITIES = [
 /** One place a test was found, and the test itself. */
 export interface TestSubject {
   file: string;
+  /** The language that found it, so a finding can name what judged it. */
   language: string;
-  /** The vocabulary that found it, so a finding can name the vocabulary's version. */
-  vocab: string;
   /**
    * How the subject was found. A rule that expects a whole test must not run
    * on `file`, and a reader must be able to tell the two apart.
@@ -77,10 +64,10 @@ export interface TestSubject {
 }
 
 /**
- * What the vocabulary resolved, handed to the model as evidence.
+ * What the language found, handed to the model as evidence.
  *
  * A rule reads these; it never re-parses the source. That is what keeps one
- * rule valid across languages, and it is why an incomplete vocabulary weakens
+ * rule valid across languages, and it is why an incomplete language weakens
  * a question instead of suppressing a verdict.
  */
 export interface Facts {

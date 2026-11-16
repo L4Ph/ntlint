@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@test-lint/core": "workspace:*",
+    "@test-lint/languages": "workspace:*",
     "@test-lint/rules": "workspace:*"
   }
 }

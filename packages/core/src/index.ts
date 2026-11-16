@@ -11,10 +11,11 @@ export type { CacheEntries } from "./cache.ts";
 export { blocks, collect, decide } from "./gate.ts";
 export type { GateResult, GateStats } from "./gate.ts";
 export { buildQuestion, questionId, substitute } from "./question.ts";
+export { defineLanguage, emptyFacts, extract } from "./language.ts";
+export type { LanguageDefinition } from "./language.ts";
 export type { Question } from "./question.ts";
 export { defineRule, loadRules, severityOf, validateRule } from "./rules.ts";
 export type { LoadOptions, LoadedRules, SkippedRule } from "./rules.ts";
-export { derivedCapabilities, mergeVocabs, parseVocab, VocabError } from "./vocab.ts";
 export { formatGithub, formatJson, formatPretty } from "./report.ts";
 export {
   classify,
@@ -33,6 +34,5 @@ export type {
   Spend,
 } from "./client.ts";
 export { estimateTokens, usdFor } from "./estimate.ts";
-export { extract, factsOf, supportedGrammars } from "./extract.ts";
 export { run } from "./run.ts";
 export type { RunOptions, RunResult, RunSpend } from "./run.ts";

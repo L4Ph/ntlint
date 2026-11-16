@@ -255,21 +255,14 @@ function sleep(ms: number): Promise<void> {
 if (import.meta.vitest) {
   const { expect, test } = import.meta.vitest;
   const { buildQuestion } = await import("./question.ts");
-  const { parseVocab } = await import("./vocab.ts");
-  const { readFileSync } = await import("node:fs");
-  const VOCAB = parseVocab(
-    readFileSync(new URL("../vocab/typescript.yml", import.meta.url), "utf-8"),
-    "vocab",
-  );
-  const { extract } = await import("./extract.ts");
-  const subject = extract('it("x", () => { expect(1).toBe(2); });', "a.test.ts", VOCAB)[0]!;
-  const { rule } = await import("./testing/builders.ts");
+  const { rule, subject } = await import("./testing/builders.ts");
+  const fixture = subject();
   // The endpoint takes a dictionary keyed by question id, not an array.
   const questions = (n: number): Record<string, ReturnType<typeof buildQuestion>> =>
     Object.fromEntries(
       Array.from({ length: n }, (_, i) => [
         `q${i}`,
-        buildQuestion(rule(), { ...subject, name: `t${i}` }, `q${i}`),
+        buildQuestion(rule(), { ...fixture, name: `t${i}` }, `q${i}`),
       ]),
     );
 

@@ -121,20 +121,13 @@ const USD_PER_MTOK = 0.042;
 if (import.meta.vitest) {
   const { expect, test } = import.meta.vitest;
   const { Cache } = await import("./cache.ts");
-  const { parseVocab } = await import("./vocab.ts");
-  const { extract } = await import("./extract.ts");
-  const { readFileSync } = await import("node:fs");
-  const { rule } = await import("./testing/builders.ts");
-  const VOCAB = parseVocab(
-    readFileSync(new URL("../vocab/typescript.yml", import.meta.url), "utf-8"),
-    "vocab",
-  );
+  const { rule, subject } = await import("./testing/builders.ts");
 
-  const SOURCE = `
-it("applies the discount", () => { expect(apply(cart)).toBe(90); });
-it("no assertion at all", () => {});
-`;
-  const subjects = extract(SOURCE, "a.test.ts", VOCAB);
+  // A test that asserts, and one that does not: the second is what a gate is for.
+  const subjects = [
+    subject(),
+    subject({ name: "no assertion at all", facts: { ...subject().facts, assertions: 0 } }),
+  ];
 
   /** Answers every question with one value, and counts the asks. */
   function stub(value: number) {
@@ -198,15 +191,15 @@ it("no assertion at all", () => {});
 
   test("a test rule is never asked about a suite", async () => {
     // A suite carries tests, not assertions: every answer would be noise.
-    const suites = extract(
-      'describe("cart", () => { it("a", () => { expect(1).toBe(2); }); });',
-      "a.test.ts",
-      VOCAB,
-    );
+    const suite = subject({
+      subjectSource: "suite",
+      name: "cart",
+      facts: { ...subject().facts, assertions: 0 },
+    });
     const stubClient = stub(0.9);
-    const asTest = await run({ subjects: suites, rules: [fitted()], client: stubClient });
-    // One test inside the suite, so one pair; the suite itself is not asked.
-    expect(asTest.stats.subjects).toBe(1);
+    const result = await run({ subjects: [suite], rules: [fitted()], client: stubClient });
+    expect(stubClient.state.questions).toBe(0);
+    expect(result.stats.subjects).toBe(0);
   });
 
   test("questions are batched at the size the run asks for", async () => {

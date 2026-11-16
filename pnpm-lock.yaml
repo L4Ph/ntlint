@@ -215,6 +215,9 @@ importers:
       '@test-lint/core':
         specifier: workspace:*
         version: link:../core
+      '@test-lint/languages':
+        specifier: workspace:*
+        version: link:../languages
       '@test-lint/rules':
         specifier: workspace:*
         version: link:../rules
@@ -224,15 +227,21 @@ importers:
       '@ast-grep/napi':
         specifier: ^0.51.1
         version: 0.51.1
-      '@valibot/to-json-schema':
-        specifier: ^1.8.0
-        version: 1.8.0(valibot@1.5.0(typescript@7.0.2))
       valibot:
         specifier: ^1.5.0
         version: 1.5.0(typescript@7.0.2)
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
+
+  packages/languages:
+    dependencies:
+      '@ast-grep/napi':
+        specifier: ^0.51.1
+        version: 0.51.1
+      '@test-lint/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/rules:
     dependencies:
@@ -761,11 +770,6 @@ packages:
     engines: {node: '>=16.20.0'}
     cpu: [x64]
     os: [win32]
-
-  '@valibot/to-json-schema@1.8.0':
-    resolution: {integrity: sha512-a0M+uwCuQZEPAo65NYkFSJ14O5c213KoSZmPdoCfuFvUhfULi4T2Z6Tpjv6lTVMW9RoLm74RpRAjNEa43KcN+g==}
-    peerDependencies:
-      valibot: ^1.5.0
 
   '@vitest/browser-preview@5.1.0':
     resolution: {integrity: sha512-z9SbodBSMoJtYy5VTCaSP5SSZfNYRlfIlR0P/uH1PAuhUJbstSyOYvxXCYmqG+EemIiZzd3uGUtREX5zbXLR8A==}
@@ -1642,10 +1646,6 @@ snapshots:
 
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
-
-  '@valibot/to-json-schema@1.8.0(valibot@1.5.0(typescript@7.0.2))':
-    dependencies:
-      valibot: 1.5.0(typescript@7.0.2)
 
   '@vitest/browser-preview@5.1.0(@voidzero-dev/vite-plus-core@1.6.0(@types/node@26.6.6)(typescript@7.0.2)(yaml@2.9.1))(vitest@5.1.0)':
     dependencies:

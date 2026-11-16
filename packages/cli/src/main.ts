@@ -8,7 +8,7 @@
  * makes pricing a run possible with no key.
  */
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   blocks,
@@ -18,17 +18,16 @@ import {
   extract,
   JevClient,
   JevError,
-  mergeVocabs,
-  parseVocab,
   questionId,
   run,
   takeKeyFromEnv,
   USD_PER_MTOK,
   type AskClient,
+  type LanguageDefinition,
   type Rule,
   type TestSubject,
-  type Vocab,
 } from "@test-lint/core";
+import { LANGUAGES, languageFor } from "@test-lint/languages";
 import { BUILTIN_RULES } from "@test-lint/rules";
 import { formatGithub, formatJson, formatPretty } from "@test-lint/core";
 
@@ -67,14 +66,6 @@ The key comes from the environment and from nowhere else. Node can load a file:
   node --env-file=.env packages/cli/src/main.ts check packages
 `;
 
-/** Extensions a vocabulary claims, by grammar. */
-const EXTENSIONS: Record<string, string[]> = {
-  TypeScript: [".ts", ".mts", ".cts"],
-  Tsx: [".tsx"],
-  JavaScript: [".js", ".mjs", ".cjs"],
-  Jsx: [".jsx"],
-};
-
 export function parseArgs(argv: string[]): Options {
   const options: Options = {
     command: "check",
@@ -108,36 +99,13 @@ export function parseArgs(argv: string[]): Options {
   return options;
 }
 
-/** The vocabularies this run can use: shipped first, then the project's own. */
-export function loadVocabs(cwd: string, vocabDir: string): Vocab[] {
-  const shipped = readVocabDir(vocabDir);
-  const userDir = join(cwd, ".test-lint", "vocab");
-  return mergeVocabs(shipped, exists(userDir) ? readVocabDir(userDir) : []);
-}
-
-function readVocabDir(dir: string): Vocab[] {
-  if (!exists(dir)) return [];
-  return readdirSync(dir)
-    .filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"))
-    .map((f) => {
-      const path = join(dir, f);
-      return parseVocab(readFileSync(path, "utf-8"), relative(process.cwd(), path));
-    });
-}
-
-/** Every file a vocabulary claims, under every path asked for. */
+/** Every file a language claims, under every path asked for. */
 export function collectFiles(
   paths: string[],
-  vocabs: Vocab[],
+  languages: readonly LanguageDefinition[],
   cwd: string,
-): Array<{ file: string; vocab: Vocab }> {
-  const byExtension = new Map<string, Vocab>();
-  for (const vocab of vocabs) {
-    for (const grammar of vocab.grammars) {
-      for (const ext of EXTENSIONS[grammar] ?? []) byExtension.set(ext, vocab);
-    }
-  }
-  const out: Array<{ file: string; vocab: Vocab }> = [];
+): Array<{ file: string; language: LanguageDefinition }> {
+  const out: Array<{ file: string; language: LanguageDefinition }> = [];
   const visit = (path: string) => {
     const full = join(cwd, path);
     if (!exists(full)) return;
@@ -148,9 +116,8 @@ export function collectFiles(
       }
       return;
     }
-    const dot = full.lastIndexOf(".");
-    const vocab = byExtension.get(full.slice(dot));
-    if (vocab !== undefined) out.push({ file: path, vocab });
+    const language = languageFor(full, languages);
+    if (language !== null) out.push({ file: path, language });
   };
   for (const path of paths) visit(path);
   return out.sort((a, b) => a.file.localeCompare(b.file));
@@ -185,15 +152,14 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
 
   // The key leaves the environment before any rule code is reached.
   const key = takeKeyFromEnv();
-  const vocabs = loadVocabs(cwd, join(import.meta.dirname, "..", "..", "core", "vocab"));
   const rules = loadRuleSet(options.fittedOnly);
   if (rules.length === 0) {
     err("no rules: every cutoff is borrowed or a placeholder, and --fitted-only was passed");
     return 2;
   }
 
-  const files = collectFiles(options.paths, vocabs, cwd);
-  const subjects = files.flatMap(({ file, vocab }) => extractFile(file, vocab, cwd));
+  const files = collectFiles(options.paths, LANGUAGES, cwd);
+  const subjects = files.flatMap(({ file, language }) => extractFile(file, language, cwd));
 
   if (options.dryRun) {
     // Price the run by building the questions it would send. No request is made,
@@ -280,8 +246,8 @@ function loadRuleSet(fittedOnly: boolean): Rule[] {
   return fittedOnly ? BUILTIN_RULES.filter((r) => r.calibration === "fitted") : [...BUILTIN_RULES];
 }
 
-function extractFile(file: string, vocab: Vocab, cwd: string): TestSubject[] {
-  return extract(readFileSync(join(cwd, file), "utf-8"), file, vocab);
+function extractFile(file: string, language: LanguageDefinition, cwd: string): TestSubject[] {
+  return extract(readFileSync(join(cwd, file), "utf-8"), file, language);
 }
 
 if (import.meta.vitest) {
@@ -313,8 +279,7 @@ if (import.meta.vitest) {
 
   test("a file no vocabulary claims is not read", async () => {
     const dir = repo();
-    const vocabs = loadVocabs(dir, join(import.meta.dirname, "..", "..", "core", "vocab"));
-    const files = collectFiles(["src"], vocabs, dir);
+    const files = collectFiles(["src"], LANGUAGES, dir);
     expect(files.map((f) => f.file)).toEqual([join("src", "cart.test.ts")]);
   });
 

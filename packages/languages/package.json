@@ -1,0 +1,19 @@
+{
+  "name": "@test-lint/languages",
+  "version": "0.0.0",
+  "private": true,
+  "description": "One module per language: how its tests are found and what a rule can read inside them.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@ast-grep/napi": "^0.51.1",
+    "@test-lint/core": "workspace:*"
+  }
+}

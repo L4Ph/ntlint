@@ -187,66 +187,41 @@ is a question only the model can answer.
   without them fails to load. A canary entry is required by the canary test
   rather than the loader, so the rule and its cases are added together.
 
-## Vocabulary data
+## Languages
 
-The only language-dependent artifact. Two sections: symbols and structure.
+A language is a module, not a data file:
 
-Its shape is defined once, as a valibot schema in `packages/core/src/schema.ts`.
-The TypeScript type is inferred from it, the loader validates with it, and
-`packages/core/vocab/schema.json` is emitted from it, so a vocabulary file is
-validated by an editor while it is being written:
-
-```yaml
-# yaml-language-server: $schema=./schema.json
+```ts
+// packages/languages/src/typescript.ts
+export default defineLanguage({
+  name: "typescript",
+  extensions: [".ts", ".tsx", ".js", ".jsx"],
+  parse: (source) => parse(Lang.TypeScript, source),
+  tests: (root) => root.root().findAll(TEST).filter(titled),
+  suites: (root) => root.root().findAll(SUITE).filter(titled),
+  nameOf,
+  facts(node, context) {
+    /* ast-grep rules: assert, double, sleep, io, ... */
+  },
+});
 ```
 
-A test compares the committed JSON Schema with what the schema emits, because an
-editor validating against a stale schema is worse than none. The hand-written
-validators this replaced kept a second copy of every rule and could drift from
-the type; there is nothing to drift from now. Network answers are validated the
-same way: an answer outside 0..1 reaches the gate as `missing`, never as a
-verdict.
+Finding a test and counting what a rule reads **is parsing** -- it is ast-grep
+work, against ast-grep's own rule vocabulary. A YAML file with a private dialect
+for the same thing was a second copy of ast-grep's config, a validator for that
+copy, and a translation layer between them: three things to keep in step for no
+capability the code did not already have. The module is type-checked, its tests
+sit beside it, and the rules it uses are the ones ast-grep documents.
 
-```yaml
-# vocab/rust.yml
-grammars: [Rust]
-test:
-  # Rust has no test construct in its grammar: the attribute is a sibling of
-  # the function, and jev-lint measures it with a text marker. Marked as an
-  # approximation until a `follows` relation is shown to be reliable.
-  marker: '#\[\s*(tokio::)?test\s*\]'
-  container: function_item
-  # `#[cfg(test)] mod tests` wraps the tests without being one.
-  guard: [{ kind: mod_item, attribute: '^#\[cfg\(test\)\]$' }]
-structure:
-  loop: [loop_expression, while_expression, for_expression]
-  conditional: [if_expression, match_expression]
-  try: [try_expression]
-  call: [call_expression, macro_invocation]
-assert:
-  - { shape: macro, callee: "^assert(_eq|_ne)?!$" }
-skip:
-  marker: '#\[\s*ignore\s*\]'
-sleep:
-  - { callee: "^thread::sleep$" }
-```
+What a language must answer: which nodes are tests and which are suites (a rule,
+because selection fails silently), what a test's own name is, and what a rule can
+read inside it (facts, since only the language knows that `vi.fn()` is a double
+and `thread::sleep` is a wait).
 
-`assert`, `double`, `sleep` and `skip` are **predicates over a node**, not
-names: a callee pattern plus the import sources that make it trustworthy. A name
-is not an identity -- `expect` is also an ordinary identifier -- so a call is
-rejected when it is imported from somewhere the vocabulary does not name. A name
-with no import at all is kept, because the frameworks define these as globals.
-
-Every field in a vocabulary is read by the extractor. Fields that were declared
-and never read (`structure.try`, `async`, a predicate's `shape`) were removed
-rather than left as an accurate-looking description of something the tool does
-not do; Python's statement-shaped assertion returns with the Python extractor,
-where it will be read on the day it is written.
-
-A rule never names a language. It reads `test.facts.*` and `test.body`, and
-`requires:` names the capabilities it needs (`snapshot`, `async`, `doubles`,
-`hooks`). A language whose vocabulary does not declare one simply does not run
-that rule, and `rules` says so.
+A rule never names a language. Adding one is a module and a line in `LANGUAGES`;
+`@ast-grep/napi` ships five grammars (Html, JavaScript, Tsx, Css, TypeScript), so
+Python, Go and Rust need an `@ast-grep/lang-*` package or a compiled parser
+before their module can parse anything.
 
 ## Subject fallback ladder
 

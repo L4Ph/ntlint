@@ -4,7 +4,6 @@ export function subject(overrides: Partial<TestSubject> = {}): TestSubject {
   return {
     file: "src/discount.test.ts",
     language: "TypeScript",
-    vocab: "typescript",
     subjectSource: "test",
     name: "applies the discount",
     text: 'it("applies the discount", () => { expect(apply(cart)).toBe(90); })',
