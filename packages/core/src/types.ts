@@ -32,6 +32,18 @@ export const CAPABILITIES = [
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
+// The vocabulary's shape is defined once, by its valibot schema, and inferred
+// here so the loader, the type and the emitted JSON Schema cannot disagree.
+export type {
+  Guard,
+  Predicate,
+  Vocab,
+  VocabSkip,
+  VocabStructure,
+  VocabSuite,
+  VocabTest,
+} from "./schema.ts";
+
 /** A vocabulary's own capabilities, derived from what it declares. */
 export const VOCAB_CAPABILITIES = [
   "test",
@@ -45,90 +57,6 @@ export const VOCAB_CAPABILITIES = [
   "io",
   "nondeterminism",
 ] as const satisfies readonly Capability[];
-
-/**
- * A container that wraps tests without being test logic.
- *
- * Vitest's in-source guard and Rust's `#[cfg(test)] mod tests` are the two that
- * exist. A rule reading "an assertion inside a conditional" must skip them, or
- * every in-source test is a false positive.
- */
-export interface Guard {
-  kind: string;
-  /** Matched against the condition expression's text, as a regex. */
-  condition: string | null;
-  /** Matched against an attribute's text, as a regex. */
-  attribute: string | null;
-}
-
-/**
- * A call-shaped thing that counts as an assertion, a double, a sleep or a hook.
- *
- * A bare name is not enough: `assert` is also a variable name, and Python's
- * assertion is a statement rather than a call. `shape` says which.
- */
-export interface Predicate {
-  shape: "call" | "method" | "macro" | "statement";
-  callee: string | null;
-  keyword: string | null;
-  /** Import sources that make the callee trustworthy, when the language can say. */
-  importedFrom: string[];
-}
-
-export interface VocabTest {
-  /**
-   * Regex over the callee's text, for a test that is a call: `it`, `test`,
-   * `specify` and the modifiers each framework adds. Data, so a language or a
-   * framework is added without touching the extractor.
-   */
-  callee: string | null;
-  /** A text marker that identifies a test function, for a grammar with no test kind. */
-  marker: string | null;
-  /** The node kind that carries a marked test, for a grammar with no test kind. */
-  container: string | null;
-  guard: Guard[];
-}
-
-export interface VocabStructure {
-  loop: string[];
-  conditional: string[];
-  try: string[];
-  call: string[];
-}
-
-/** A block that groups tests without being one: `describe`, `context`, `suite`. */
-export interface VocabSuite {
-  callee: string | null;
-}
-
-export interface VocabSkip {
-  marker: string | null;
-  modifiers: string[];
-}
-
-export interface Vocab {
-  name: string;
-  grammars: string[];
-  /** The file it was read from, shown whenever two vocabularies collide. */
-  source: string;
-  test: VocabTest;
-  suite: VocabSuite;
-  structure: VocabStructure;
-  assert: Predicate[];
-  double: Predicate[];
-  sleep: Predicate[];
-  skip: VocabSkip;
-  hooks: Predicate[];
-  /** Matcher names whose assertion is a call check rather than an outcome check. */
-  interactionMatchers: string[];
-  /** Matcher names that record output rather than assert a property of it. */
-  snapshotMatchers: string[];
-  /** Filesystem and network calls a small test should not make. */
-  io: Predicate[];
-  /** Clock, randomness and ids: the three ways a test stops being repeatable. */
-  nondeterminism: Predicate[];
-  async: boolean;
-}
 
 /** One place a test was found, and the test itself. */
 export interface TestSubject {

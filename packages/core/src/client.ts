@@ -14,6 +14,8 @@
  *   implemented yet; what is here is a bounded wait and retry, counted apart
  *   from `retries` so a busy account does not look like a broken one.
  */
+import { safeParse } from "valibot";
+import { AnswerSchema } from "./schema.ts";
 import { estimateTokens } from "./estimate.ts";
 import type { Question } from "./question.ts";
 import type { Answer } from "./types.ts";
@@ -222,26 +224,21 @@ export function takeKeyFromEnv(env = process.env): string | null {
   return key;
 }
 
-/** Read an answer back. Returns null when the answer is unusable. */
+/**
+ * Read an answer back, against the schema rather than by duck-typing.
+ *
+ * An answer outside 0..1, or of a type this build does not know, must reach the
+ * gate as `missing`: a value read loosely is a verdict nobody can defend.
+ */
 export function readAnswer(
   answers: Record<string, unknown> | undefined,
   id: string,
 ): Answer | null {
-  const raw = answers?.[id] as
-    | { type?: string; noul?: unknown; score?: unknown; confidence?: unknown }
-    | undefined;
-  if (!raw) return null;
-  if (raw.type === "noul" && typeof raw.noul === "number") {
-    return { value: raw.noul, confidence: null, kind: "noul" };
-  }
-  if (raw.type === "score" && typeof raw.score === "number") {
-    return {
-      value: raw.score,
-      confidence: typeof raw.confidence === "number" ? raw.confidence : null,
-      kind: "score",
-    };
-  }
-  return null;
+  const parsed = safeParse(AnswerSchema, answers?.[id]);
+  if (!parsed.success) return null;
+  return parsed.output.type === "noul"
+    ? { value: parsed.output.noul, confidence: null, kind: "noul" }
+    : { value: parsed.output.score, confidence: parsed.output.confidence ?? null, kind: "score" };
 }
 
 /** The named subset of a question record, keeping the ids. */

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./schema.json
 # TypeScript, and the three grammars that share its syntax.
 #
 # This file is the only language-dependent artifact in the tool. A rule reads

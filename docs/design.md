@@ -191,6 +191,22 @@ is a question only the model can answer.
 
 The only language-dependent artifact. Two sections: symbols and structure.
 
+Its shape is defined once, as a valibot schema in `packages/core/src/schema.ts`.
+The TypeScript type is inferred from it, the loader validates with it, and
+`packages/core/vocab/schema.json` is emitted from it, so a vocabulary file is
+validated by an editor while it is being written:
+
+```yaml
+# yaml-language-server: $schema=./schema.json
+```
+
+A test compares the committed JSON Schema with what the schema emits, because an
+editor validating against a stale schema is worse than none. The hand-written
+validators this replaced kept a second copy of every rule and could drift from
+the type; there is nothing to drift from now. Network answers are validated the
+same way: an answer outside 0..1 reaches the gate as `missing`, never as a
+verdict.
+
 ```yaml
 # vocab/rust.yml
 grammars: [Rust]
