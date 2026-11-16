@@ -25,6 +25,7 @@
   "files": [
     "dist",
     "docs/design.md",
+    "docs/rules",
     "README.md",
     "LICENSE"
   ],
@@ -41,7 +42,8 @@
     "test": "vp test",
     "check": "vp check",
     "prepublishOnly": "vp pack",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "docs": "node packages/rules/scripts/emit-docs.ts"
   },
   "dependencies": {
     "@ast-grep/lang-go": "^0.0.6",

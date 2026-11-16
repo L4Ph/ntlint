@@ -53,7 +53,7 @@ const DEFAULT_CACHE = ".test-lint/cache.json";
 export type Format = "agent" | "json" | "github" | "pretty";
 
 export interface Options {
-  command: "check";
+  command: "check" | "rules";
   paths: string[];
   format: Format;
   dryRun: boolean;
@@ -96,6 +96,10 @@ export function parseArgs(argv: string[]): Options {
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]!;
     if (arg === "check") continue;
+    if (arg === "rules") {
+      options.command = "rules";
+      continue;
+    }
     if (arg === "--cache") {
       const next = argv[i + 1];
       if (next === undefined) throw new Error("--cache needs a path or `none`");
@@ -181,6 +185,26 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
   }
   if (options.help) {
     out(USAGE);
+    return 0;
+  }
+  if (options.command === "rules") {
+    // JSON Lines like a run, so a reader that already parses findings parses
+    // this: what a rule asks, what its cutoff is, and where it came from.
+    for (const rule of loadRuleSet(false)) {
+      out(
+        JSON.stringify({
+          type: "rule",
+          id: rule.id,
+          severity: rule.severity,
+          subject: rule.subject,
+          calibration: rule.calibration,
+          calibrationSource: rule.calibrationSource,
+          threshold: rule.threshold,
+          ask: rule.ask,
+          docs: rule.docs,
+        }),
+      );
+    }
     return 0;
   }
 

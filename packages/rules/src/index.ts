@@ -124,6 +124,16 @@ if (import.meta.vitest) {
     for (const r of BUILTIN_RULES) expect(r.docs).toMatch(/^docs\/rules\/.*\.md$/);
   });
 
+  test("every rule names a page that exists", async () => {
+    // A finding points at its rule's docs. A 404 there is a finding an agent
+    // cannot look up, which is the one thing the loader calls a hard error.
+    const { existsSync } = await import("node:fs");
+    for (const rule of BUILTIN_RULES) {
+      const path = new URL(`../../../docs/${rule.docs.replace(/^docs\//, "")}`, import.meta.url);
+      expect(existsSync(path), `${rule.id}: ${rule.docs}`).toBe(true);
+    }
+  });
+
   test("every rule asks something, and none of them asks with a cutoff in it", () => {
     // The cutoff is the runner's decision; a rule that wrote it into the
     // sentence would need rewriting on every recalibration.
