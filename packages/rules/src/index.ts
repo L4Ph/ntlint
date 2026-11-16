@@ -110,7 +110,7 @@ if (import.meta.vitest) {
     expect(result.skipped).toHaveLength(17);
   });
 
-  test("seventeen rules ship: five borrowed, twelve placeholders, none fitted here", () => {
+  test("ships seventeen rules, five borrowed and twelve with placeholder cutoffs", () => {
     expect(BUILTIN_RULES).toHaveLength(17);
     for (const r of BUILTIN_RULES) expect(validateRule(r)).toEqual([]);
     expect(BUILTIN_RULES.filter((r) => r.calibration === "fitted")).toHaveLength(0);

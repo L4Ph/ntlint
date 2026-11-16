@@ -16,7 +16,7 @@
  * facts and the model still reads the source.
  */
 import type { Facts, Rule, TestSubject } from "./types.ts";
-import { answer, rule, subject } from "./testing/builders.ts";
+import { rule, subject } from "./testing/builders.ts";
 
 export interface Question {
   type: "noul" | "score";
@@ -88,7 +88,7 @@ export function substitute(ask: string, subject: TestSubject): string {
 if (import.meta.vitest) {
   const { expect, test } = import.meta.vitest;
 
-  test("the question carries the sentence, the test's name and the facts", () => {
+  test("puts the rule's sentence, the test's name and its facts into one question", () => {
     const q = buildQuestion(rule(), subject({ name: "applies the discount" }), "q0001");
     expect(q.instructions.statement).toBe(rule().ask);
     expect(q.instructions.test).toBe("applies the discount");
@@ -104,11 +104,15 @@ if (import.meta.vitest) {
     expect(JSON.stringify(q)).not.toContain("0.93");
   });
 
-  test("a rule that names $NAME has it filled from the subject", () => {
+  test("replaces $NAME with the subject's name and leaves other sentences alone", () => {
     const ask = "The operation this test names ($NAME) is not the one its body exercises.";
     const built = buildQuestion(rule({ ask }), subject({ name: "rejects an empty cart" }), "q0001");
     expect(built.instructions.statement).toContain("rejects an empty cart");
     expect(built.instructions.statement).not.toContain("$NAME");
+
+    // The name also claims other sentences are left alone, so that is checked.
+    const untouched = buildQuestion(rule({ ask: "No placeholder here." }), subject(), "q0002");
+    expect(untouched.instructions.statement).toBe("No placeholder here.");
   });
 
   test("a name-less subject falls back to its file rather than sending an empty claim", () => {
@@ -132,10 +136,10 @@ if (import.meta.vitest) {
     );
   });
 
-  test("an answer over the cutoff and one under it are both representable", () => {
-    // The payload carries no decision; `gate.decide` is what applies the cutoff.
-    const q = buildQuestion(rule(), subject(), "q0001");
-    expect(q).not.toHaveProperty("threshold");
-    expect(answer(0.9).value).toBeGreaterThan(rule().threshold);
+  test("the payload carries no decision, because the gate applies the cutoff", () => {
+    // The same claim as the cutoff test above, asserted from the other side: a
+    // question has no field a verdict could be read out of.
+    const q = buildQuestion(rule({ threshold: 0.93 }), subject(), "q0001");
+    expect(JSON.stringify(q)).not.toContain("threshold");
   });
 }

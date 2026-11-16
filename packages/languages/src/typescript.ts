@@ -254,7 +254,7 @@ describe("cart", () => {
   const found = extract(SOURCE, "src/cart.test.ts", typescript);
   const byName = (name: string) => found.find((s) => s.name === name);
 
-  test("every test and every suite is found, wherever it sits", () => {
+  test("finds four tests and one suite when one test sits inside a describe", () => {
     expect(found.filter((s) => s.subjectSource === "test")).toHaveLength(4);
     expect(found.filter((s) => s.subjectSource === "suite")).toHaveLength(1);
   });
@@ -264,7 +264,7 @@ describe("cart", () => {
     expect(lines).toEqual([...lines].sort((a, b) => a - b));
   });
 
-  test("a test carries its own title and body as the thing judged", () => {
+  test("keeps the title, the body and the line range of each test", () => {
     const first = found[0]!;
     expect(first.name).toBe("applies the discount");
     expect(first.text).toContain("expect(applyDiscount(cart)).toBe(90)");
@@ -282,12 +282,12 @@ describe("cart", () => {
     expect(each?.facts.assertions).toBe(1);
   });
 
-  test("a helper named describe is not a suite, and a test named test is not one", () => {
+  test("finds no test in describe(f) and none in a bare declaration", () => {
     // `describe(f)` carries no title, so the rule's own requirement drops it.
     expect(extract("describe(f);", "a.ts", typescript)).toEqual([]);
   });
 
-  test("a skip marker is a fact, and a property called skip is not", () => {
+  test("reads a skip modifier from the callee and not from a property in the body", () => {
     expect(byName("does nothing yet")?.facts.skip).toBe("skip");
     const [s] = extract(
       'it("x", () => { expect(a.facts.skip).toBe(null); });',
@@ -297,7 +297,7 @@ describe("cart", () => {
     expect(s?.facts.skip).toBeNull();
   });
 
-  test("a double, a sleep and an interaction assertion are counted", () => {
+  test("counts one double, one sleep and one interaction assertion", () => {
     expect(byName("does nothing yet")?.facts.doubles).toBe(1);
     const timed = byName("times out");
     expect(timed?.facts.sleeps).toBe(1);
@@ -305,7 +305,7 @@ describe("cart", () => {
     expect(timed?.facts.interactionAssertions).toBe(1);
   });
 
-  test("an assertion under a loop is nested, and one under a guard is not", () => {
+  test("marks an assertion under a loop as nested and one under a guard as not", () => {
     const looped = found.filter((s) => s.name === "applies the discount").at(-1);
     expect(looped?.facts.nestedAssertions).toBe(true);
 
@@ -318,7 +318,7 @@ describe("cart", () => {
     expect(inSource?.facts.nestedAssertions).toBe(false);
   });
 
-  test("a duplicate title is a fact, not a separate rule", () => {
+  test("marks both tests with a duplicate title as duplicates", () => {
     const duplicates = found.filter((s) => s.facts.duplicateName).map((s) => s.name);
     expect(duplicates).toEqual(["applies the discount", "applies the discount"]);
   });
@@ -328,7 +328,7 @@ describe("cart", () => {
     expect(s?.facts.trivialAssertions).toBe(1);
   });
 
-  test("an assertion imported from somewhere else is not this framework's", () => {
+  test("counts an expect imported from vitest and not one imported from chai", () => {
     const [chai] = extract(
       'import { expect } from "chai";\nit("x", () => { expect(1).toBe(2); });',
       "a.test.ts",
@@ -343,12 +343,12 @@ describe("cart", () => {
     expect(vitest?.facts.assertions).toBe(1);
   });
 
-  test("a global assertion with no import at all is still an assertion", () => {
+  test("counts a global expect that is never imported", () => {
     const [s] = extract('it("x", () => { expect(1).toBe(2); });', "a.test.ts", typescript);
     expect(s?.facts.assertions).toBe(1);
   });
 
-  test("a test's own name is read from the title argument, and nothing else is a test", () => {
+  test("reads the title argument as the name and finds no test in other code", () => {
     expect(extract("const it = 1;", "a.ts", typescript)).toEqual([]);
     expect(extract('it.todo("later");', "a.test.ts", typescript)[0]?.name).toBe("later");
   });

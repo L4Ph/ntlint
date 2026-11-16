@@ -159,7 +159,7 @@ if (import.meta.vitest) {
 
   const fitted = () => rule({ calibration: "fitted", requires: ["model", "test"] });
 
-  test("one request carries every outstanding question", async () => {
+  test("asks one request for two questions and reports both findings", async () => {
     const stubClient = stub(0.9);
     const result = await run({ subjects, rules: [fitted()], client: stubClient });
     expect(stubClient.state.calls).toBe(1);
@@ -214,7 +214,7 @@ if (import.meta.vitest) {
     expect(result.stats.subjects).toBe(0);
   });
 
-  test("questions are batched at the size the run asks for", async () => {
+  test("sends two requests when the batch size is one", async () => {
     const stubClient = stub(0.9);
     await run({ subjects, rules: [fitted()], client: stubClient, maxQuestions: 1 });
     expect(stubClient.state.calls).toBe(2);

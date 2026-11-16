@@ -269,20 +269,23 @@ if (import.meta.vitest) {
   const client = (transport: typeof fetch) =>
     new JevClient({ apiKey: "test", transport, rateLimitWaitMs: 1, retries: 1 });
 
-  test("an answer comes back under the id it was asked with", async () => {
+  test("matches an answer to its question by id, not by position", async () => {
     const calls: string[] = [];
     const c = client(async (_url, init) => {
       calls.push(typeof init?.body === "string" ? init.body : "");
+      // Only the second question is answered, and out of order: an answer read
+      // positionally would land on the wrong question.
       return new Response(
         JSON.stringify({
-          answers: { q0: { type: "noul", noul: 0.8 } },
+          answers: { q1: { type: "noul", noul: 0.8 } },
           usage: { input_tokens: 120 },
         }),
         { status: 200 },
       );
     });
-    const res = await c.ask({ state: "", questions: questions(1) });
-    expect(readAnswer(res.answers, "q0")?.value).toBe(0.8);
+    const res = await c.ask({ state: "", questions: questions(2) });
+    expect(readAnswer(res.answers, "q0")).toBeNull();
+    expect(readAnswer(res.answers, "q1")?.value).toBe(0.8);
     expect(c.spend.inputTokens).toBe(120);
     expect(calls).toHaveLength(1);
   });

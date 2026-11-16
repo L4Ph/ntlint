@@ -48,9 +48,10 @@ if (import.meta.vitest) {
   });
 
   test("a response missing usage still reads, with the counts at zero", () => {
-    const result = v.safeParse(AskResponseSchema, { answers: {} });
-    expect(result.success).toBe(true);
-    if (result.success) expect(result.output.usage).toEqual({ input_tokens: 0, output_tokens: 0 });
+    // `parse` throws, so the assertion is not guarded by a branch it would be
+    // skipped in -- which is what a `if (result.success)` wrapper was doing.
+    const parsed = v.parse(AskResponseSchema, { answers: {} });
+    expect(parsed.usage).toEqual({ input_tokens: 0, output_tokens: 0 });
   });
 
   test("a response with a field this build does not know still reads", () => {

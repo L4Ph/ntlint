@@ -335,11 +335,14 @@ if (import.meta.vitest) {
       cwd: repo(),
     });
     expect(code).toBe(0);
-    expect(lines.join("\n")).toContain("1 test(s) in 1 file(s)");
-    expect(lines.join("\n")).toContain("no request was made");
+    const output = lines.join("\n");
+    expect(output).toContain("1 test(s) in 1 file(s)");
+    // "Prices the work" is in the name, so the price is what is checked.
+    expect(output).toMatch(/about [\d,]+ input tokens, \$\d+\.\d{4}/);
+    expect(output).toContain("no request was made");
   });
 
-  test("a file no vocabulary claims is not read", async () => {
+  test("reads only the files a language claims", async () => {
     const dir = repo();
     const files = collectFiles(["src"], LANGUAGES, dir);
     expect(files.map((f) => f.file)).toEqual([join("src", "cart.test.ts")]);
@@ -370,7 +373,7 @@ if (import.meta.vitest) {
     expect(errors.join("\n")).toContain("did not complete");
   });
 
-  test("findings come back in the shape the flag asked for", async () => {
+  test("prints one JSON document when --json is passed", async () => {
     const lines: string[] = [];
     const client = {
       ask: async ({ questions }: { questions: Record<string, unknown> }) => ({
