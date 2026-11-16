@@ -218,10 +218,26 @@ because selection fails silently), what a test's own name is, and what a rule ca
 read inside it (facts, since only the language knows that `vi.fn()` is a double
 and `thread::sleep` is a wait).
 
-A rule never names a language. Adding one is a module and a line in `LANGUAGES`;
-`@ast-grep/napi` ships five grammars (Html, JavaScript, Tsx, Css, TypeScript), so
-Python, Go and Rust need an `@ast-grep/lang-*` package or a compiled parser
-before their module can parse anything.
+A rule never names a language. Adding one is a module and a line in `LANGUAGES`.
+
+`@ast-grep/napi` ships five grammars (Html, JavaScript, Tsx, Css, TypeScript).
+Python, Rust and Go come from `@ast-grep/lang-*` packages -- compiled tree-sitter
+parsers registered once per process -- and each has a module here:
+
+| language   | how a test is found                           | assertion shape                                  |
+| ---------- | --------------------------------------------- | ------------------------------------------------ |
+| TypeScript | `it(...)` / `test(...)` call, by callee field | `expect(...).toBe(...)`, chained call            |
+| Python     | `def test_*`                                  | `assert` **statement**, and `self.assert*` calls |
+| Rust       | `#[test]` attribute **above** the function    | `assert_eq!` **macro**                           |
+| Go         | `func TestX`                                  | `t.Fatalf(...)`, a method on the testing handle  |
+
+Three grammars, three different shapes for the same fact, which is why the
+language is a module and not a table row.
+
+**Verification.** Rust was checked against `cargo test -- --list` on a fixture
+crate with a unit test, an ignored test and an integration test: three tests, and
+extraction found the same three. Python and Go are not verified yet -- pytest and
+the go toolchain are not installed on this machine, so the oracle cannot run.
 
 ## Subject fallback ladder
 

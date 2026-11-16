@@ -12,6 +12,7 @@ export { blocks, collect, decide } from "./gate.ts";
 export type { GateResult, GateStats } from "./gate.ts";
 export { buildQuestion, questionId, substitute } from "./question.ts";
 export { defineLanguage, emptyFacts, extract } from "./language.ts";
+export { fieldText, findAll, isUnder, nodeKey, rootName } from "./factkit.ts";
 export type { LanguageDefinition } from "./language.ts";
 export type { Question } from "./question.ts";
 export { defineRule, loadRules, severityOf, validateRule } from "./rules.ts";

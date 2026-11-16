@@ -5,9 +5,12 @@
  * names a language at all.
  */
 import type { LanguageDefinition } from "@test-lint/core";
+import go from "./go.ts";
+import python from "./python.ts";
+import rust from "./rust.ts";
 import typescript from "./typescript.ts";
 
-export const LANGUAGES: readonly LanguageDefinition[] = [typescript];
+export const LANGUAGES: readonly LanguageDefinition[] = [typescript, python, rust, go];
 
 /** The language that claims a path, by extension. */
 export function languageFor(path: string, languages = LANGUAGES): LanguageDefinition | null {
