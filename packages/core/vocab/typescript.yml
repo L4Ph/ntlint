@@ -19,6 +19,8 @@ structure:
   loop: [for_statement, for_in_statement, for_of_statement, while_statement, do_statement]
   conditional: [if_statement, ternary_expression, switch_statement]
   call: [call_expression]
+  # What ast-grep calls the field that holds the callee.
+  callField: function
 assert:
   # In-source `expect` comes from `import.meta.vitest`, not from the package: a
   # vocabulary naming only the package finds no assertion in any in-source test.

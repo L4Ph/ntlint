@@ -56,6 +56,8 @@ export const StructureSchema = v.strictObject({
   loop: strings,
   conditional: strings,
   call: strings,
+  /** The field a call node keeps its callee in: `function`, `callee`, ... */
+  callField: v.optional(v.string(), "function"),
 });
 
 export const SkipSchema = v.strictObject({
@@ -68,7 +70,12 @@ export const VocabSchema = v.strictObject({
   grammars: v.pipe(v.array(v.string()), v.minLength(1)),
   test: TestSchema,
   suite: v.optional(SuiteSchema, { callee: null }),
-  structure: v.optional(StructureSchema, { loop: [], conditional: [], call: [] }),
+  structure: v.optional(StructureSchema, {
+    loop: [],
+    conditional: [],
+    call: [],
+    callField: "function",
+  }),
   assert: v.optional(v.array(PredicateSchema), []),
   double: v.optional(v.array(PredicateSchema), []),
   sleep: v.optional(v.array(PredicateSchema), []),

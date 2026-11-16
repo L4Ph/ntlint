@@ -133,6 +133,10 @@
             "type": "string"
           },
           "default": []
+        },
+        "callField": {
+          "type": "string",
+          "default": "function"
         }
       },
       "required": [],
@@ -140,7 +144,8 @@
       "default": {
         "loop": [],
         "conditional": [],
-        "call": []
+        "call": [],
+        "callField": "function"
       }
     },
     "assert": {

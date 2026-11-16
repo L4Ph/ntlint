@@ -50,30 +50,23 @@ export function extract(source: string, file: string, vocab: Vocab): TestSubject
   if (grammar === undefined) return [];
   const root = parse(GRAMMARS[grammar]!, source).root();
 
-  const tests: SgNode[] = [];
-  const suites: SgNode[] = [];
-  for (const node of walk(root)) {
-    const kind = String(node.kind());
-    if (vocab.structure.call.includes(kind)) {
-      const callee = calleeText(node);
-      if (callee === null) continue;
-      // A title argument is required, not a nicety: `describe(f)` and
-      // `test(fn)` are ordinary helpers, and a helper named `describe` was
-      // being judged as a suite with eighteen rules.
-      const titled = stringArgument(node) !== null;
-      if (!titled) continue;
-      if (vocab.test.callee !== null && matches(vocab.test.callee, callee)) {
-        tests.push(node);
-      } else if (vocab.suite.callee !== null && matches(vocab.suite.callee, callee)) {
-        suites.push(node);
-      }
-      continue;
-    }
-    // A grammar whose tests are declarations: `#[test] fn`, `def test_`.
-    if (vocab.test.container === kind && markerMatches(vocab.test.marker ?? null, node.text())) {
-      tests.push(node);
-    }
-  }
+  // Selection is ast-grep's job: the rule matches a *field*, so text that merely
+  // looks like a callee cannot match, and a call whose callee is itself a call
+  // (`test.each([...])("t", fn)`) is matched by the regex over its own text.
+  const callKinds = vocab.structure.call.map((kind) => ({ kind }));
+  const selection = (callee: string) => ({
+    rule: {
+      any: callKinds,
+      has: { field: vocab.structure.callField, regex: callee },
+    },
+  });
+
+  const tests =
+    vocab.test.callee === null
+      ? declarationTests(root, vocab)
+      : titled(root.findAll(selection(vocab.test.callee)));
+  const suites =
+    vocab.suite.callee === null ? [] : titled(root.findAll(selection(vocab.suite.callee)));
 
   const imports = importsOf(root);
   const names = tests.map((node) => nameOf(node, vocab));
@@ -96,6 +89,23 @@ export function extract(source: string, file: string, vocab: Vocab): TestSubject
     ),
   ];
   return subjects.sort((a, b) => a.line - b.line);
+}
+
+/** A title argument is required: `describe(f)` and `test(fn)` are ordinary helpers. */
+function titled(nodes: SgNode[]): SgNode[] {
+  return nodes.filter((node) => stringArgument(node) !== null);
+}
+
+/** A grammar whose tests are declarations: `#[test] fn`, `def test_`. */
+function declarationTests(root: SgNode, vocab: Vocab): SgNode[] {
+  const kind = vocab.test.container;
+  if (kind === null) return [];
+  const found: SgNode[] = [];
+  for (const node of walk(root)) {
+    if (String(node.kind()) === kind && markerMatches(vocab.test.marker ?? null, node.text()))
+      found.push(node);
+  }
+  return found;
 }
 
 function subject(
@@ -221,10 +231,6 @@ function baseOf(node: SgNode | null): string {
     return node.child(0)?.text() ?? node.text();
   if (kind === "member_expression" || kind === "call_expression") return baseOf(node.child(0));
   return node.text();
-}
-
-function matches(pattern: string, text: string): boolean {
-  return new RegExp(pattern).test(text);
 }
 
 function markerMatches(marker: string | null, text: string): boolean {
@@ -427,6 +433,18 @@ describe("cart", () => {
 
   const found = extract(SOURCE, "src/cart.test.ts", VOCAB);
   const byName = (name: string) => found.find((s) => s.name === name);
+
+  test("a table-driven test is found by the rule that matches its callee", () => {
+    // `test.each([...])("title", fn)` is a call whose callee is itself a call;
+    // the rule matches the callee field's text, so both forms are one selector.
+    const [each] = extract(
+      'test.each([[1], [2]])("case %i", (n) => { expect(n).toBe(1); });',
+      "a.test.ts",
+      VOCAB,
+    );
+    expect(each?.name).toBe("case %i");
+    expect(each?.facts.assertions).toBe(1);
+  });
 
   test("every test and every suite is found, wherever it sits", () => {
     // Four tests and one suite. A path filter would find none of them, and a
