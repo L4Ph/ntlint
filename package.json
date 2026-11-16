@@ -9,15 +9,15 @@
     "test-quality",
     "testing"
   ],
-  "homepage": "https://github.com/L4Ph/test-lint#readme",
+  "homepage": "https://github.com/L4Ph/ntlint#readme",
   "bugs": {
-    "url": "https://github.com/L4Ph/test-lint/issues"
+    "url": "https://github.com/L4Ph/ntlint/issues"
   },
   "license": "MIT",
   "author": "katsuyuki-karasawa",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/L4Ph/test-lint.git"
+    "url": "git+https://github.com/L4Ph/ntlint.git"
   },
   "bin": {
     "ntlint": "./dist/main.mjs"
