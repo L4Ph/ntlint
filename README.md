@@ -4,7 +4,7 @@ A linter for tests. One rule applies to every language, and the verdict comes fr
 a classifier that answers a natural-language question with a probability.
 
 ```
-$ npx test-lint check src --dry-run
+$ npx test-claims check src --dry-run
 85 test(s) in 40 file(s); 504 question(s)
 about 495,775 input tokens, $0.0208 at $0.042/Mtok
 no request was made (--dry-run)
@@ -24,9 +24,9 @@ already decides. Those belong to the tools you already run.
 ## Install
 
 ```bash
-npm install --save-dev test-lint
+npm install --save-dev test-claims
 export TYPESAFE_API_KEY=...      # https://typesafe.ai; the key comes from the environment only
-npx test-lint check src
+npx test-claims check src
 ```
 
 `--dry-run` prices a run and makes no request, so it needs no key.

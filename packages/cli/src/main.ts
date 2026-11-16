@@ -7,7 +7,14 @@
  * without a network. `--dry-run` never constructs a client at all, which is what
  * makes pricing a run possible with no key.
  */
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -396,7 +403,22 @@ if (import.meta.vitest) {
   });
 }
 
-// Run only when invoked as a program: the tests import this module.
-const invoked =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (invoked) process.exitCode = await main(process.argv.slice(2));
+/**
+ * Run only when invoked as a program: the tests import this module.
+ *
+ * `process.argv[1]` is the path that was executed, and a package manager runs a
+ * bin through a symlink in `node_modules/.bin`, while `import.meta.url` is the
+ * real file. Comparing them without resolving the link made the installed
+ * command exit 0 and print nothing -- a published binary that does nothing is a
+ * bug only a real install finds.
+ */
+function invokedAsProgram(): boolean {
+  if (process.argv[1] === undefined) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href;
+  } catch {
+    return false;
+  }
+}
+
+if (invokedAsProgram()) process.exitCode = await main(process.argv.slice(2));
