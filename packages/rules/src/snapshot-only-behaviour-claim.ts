@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/snapshot-only-behaviour-claim.md",
   severity: "warning",
   requires: ["model", "snapshot"],
+  subject: "test",
   kind: "noul",
   calibration: "borrowed",
   calibrationSource: "jev-lint@af58a3b rules/typescript/snapshot-only-behaviour-claim/rule.yml",

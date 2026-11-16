@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/describe-names-subject.md",
   severity: "warning",
   requires: ["model", "test"],
+  subject: "suite",
   kind: "noul",
   calibration: "borrowed",
   calibrationSource: "jev-lint@af58a3b rules/typescript/describe-names-subject/rule.yml",

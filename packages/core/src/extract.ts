@@ -57,6 +57,11 @@ export function extract(source: string, file: string, vocab: Vocab): TestSubject
     if (vocab.structure.call.includes(kind)) {
       const callee = calleeText(node);
       if (callee === null) continue;
+      // A title argument is required, not a nicety: `describe(f)` and
+      // `test(fn)` are ordinary helpers, and a helper named `describe` was
+      // being judged as a suite with eighteen rules.
+      const titled = stringArgument(node) !== null;
+      if (!titled) continue;
       if (vocab.test.callee !== null && matches(vocab.test.callee, callee)) {
         tests.push(node);
       } else if (vocab.suite.callee !== null && matches(vocab.suite.callee, callee)) {
@@ -261,8 +266,18 @@ function isAssertionReceiver(call: SgNode): boolean {
   );
 }
 
+/**
+ * A skip marker is in the callee, not anywhere in the body.
+ *
+ * Searching the whole text read `facts.skip` -- a property access inside a
+ * test's body -- as `it.skip`, and reported the test as abandoned. A language
+ * whose tests are declarations has no callee, so its marker is checked against
+ * the head instead.
+ */
 function skipOf(vocab: Vocab, test: SgNode): string | null {
-  const head = test.text().slice(0, 120);
+  const head = vocab.structure.call.includes(String(test.kind()))
+    ? (calleeText(test) ?? "")
+    : test.text().slice(0, 120);
   for (const modifier of vocab.skip.modifiers) {
     if (new RegExp(`\\.${modifier}\\b`).test(head)) return modifier;
   }
@@ -381,6 +396,13 @@ describe("cart", () => {
 
   test("a skip marker is a fact, and the modifier names it", () => {
     expect(byName("does nothing yet")?.facts.skip).toBe("skip");
+  });
+
+  test("a property called skip in the body is not a skipped test", () => {
+    // `facts.skip` matched `.skip` when the whole text was searched, and a test
+    // that reads a skip fact was reported as abandoned.
+    const [s] = extract('it("x", () => { expect(a.facts.skip).toBe(null); });', "a.test.ts", VOCAB);
+    expect(s?.facts.skip).toBeNull();
   });
 
   test("a double, a sleep and an interaction assertion are counted", () => {

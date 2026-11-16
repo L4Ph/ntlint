@@ -13,6 +13,7 @@ export default defineRule({
   docs: "docs/rules/test-waits-for-the-event.md",
   severity: "warning",
   requires: ["model", "sleep"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

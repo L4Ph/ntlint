@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/test-cleans-up-its-doubles.md",
   severity: "warning",
   requires: ["model", "doubles", "hooks"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/test-is-deterministic.md",
   severity: "warning",
   requires: ["model", "nondeterminism"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

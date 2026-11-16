@@ -14,6 +14,7 @@ export default defineRule({
   docs: "docs/rules/test-name-verifies-claim.md",
   severity: "warning",
   requires: ["model", "test"],
+  subject: "test",
   kind: "noul",
   calibration: "borrowed",
   calibrationSource: "jev-lint@af58a3b rules/typescript/test-name-verifies-claim/rule.yml",

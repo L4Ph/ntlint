@@ -59,6 +59,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const pairs: Pair[] = [];
   for (const subject of subjects) {
     for (const rule of rules) {
+      // A test rule on a suite asks about assertions a suite does not have.
+      const kind = subject.subjectSource === "suite" ? "suite" : "test";
+      if (rule.subject !== "any" && rule.subject !== kind) continue;
       if (rule.gate !== null && !rule.gate(subject)) continue;
       const key = verdictKey({ rule, subject, arm });
       const cached = cache?.get(key) ?? null;
@@ -191,6 +194,19 @@ it("no assertion at all", () => {});
     expect(result.findings).toHaveLength(0);
     expect(result.stats.missing).toBe(2);
     expect(result.failures).toEqual(["network down"]);
+  });
+
+  test("a test rule is never asked about a suite", async () => {
+    // A suite carries tests, not assertions: every answer would be noise.
+    const suites = extract(
+      'describe("cart", () => { it("a", () => { expect(1).toBe(2); }); });',
+      "a.test.ts",
+      VOCAB,
+    );
+    const stubClient = stub(0.9);
+    const asTest = await run({ subjects: suites, rules: [fitted()], client: stubClient });
+    // One test inside the suite, so one pair; the suite itself is not asked.
+    expect(asTest.stats.subjects).toBe(1);
   });
 
   test("questions are batched at the size the run asks for", async () => {

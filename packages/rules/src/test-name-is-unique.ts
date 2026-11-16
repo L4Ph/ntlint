@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/test-name-is-unique.md",
   severity: "warning",
   requires: ["model", "test"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

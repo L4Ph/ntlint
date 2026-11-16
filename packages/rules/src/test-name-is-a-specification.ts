@@ -14,6 +14,7 @@ export default defineRule({
   docs: "docs/rules/test-name-is-a-specification.md",
   severity: "info",
   requires: ["model", "test"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

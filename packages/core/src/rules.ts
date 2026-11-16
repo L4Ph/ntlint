@@ -7,7 +7,7 @@
  * an uncalibrated cutoff has to be asked for by name: a number presented as
  * fitted, and fitted to nothing, is worse than no rule at all.
  */
-import { CALIBRATIONS, CAPABILITIES, SEVERITIES } from "./types.ts";
+import { CALIBRATIONS, CAPABILITIES, RULE_SUBJECTS, SEVERITIES } from "./types.ts";
 import type { Capability, Rule, Severity } from "./types.ts";
 
 export class RuleError extends Error {
@@ -116,6 +116,9 @@ export function validateRule(rule: Rule): string[] {
   }
   if (rule.calibration === "borrowed" && (rule.calibrationSource ?? "").trim() === "") {
     reasons.push("a borrowed cutoff must name where it came from");
+  }
+  if (!(RULE_SUBJECTS as readonly string[]).includes(rule.subject)) {
+    reasons.push(`subject "${rule.subject}" is not one of ${RULE_SUBJECTS.join(", ")}`);
   }
   if (!(SEVERITIES as readonly string[]).includes(rule.severity)) {
     reasons.push(`severity "${rule.severity}" is not one of ${SEVERITIES.join(", ")}`);

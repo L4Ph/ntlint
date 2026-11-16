@@ -10,6 +10,7 @@ export default defineRule({
   docs: "docs/rules/test-is-not-abandoned.md",
   severity: "warning",
   requires: ["model", "skip"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

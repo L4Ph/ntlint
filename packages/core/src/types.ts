@@ -116,6 +116,14 @@ export interface Answer {
   kind: "score" | "noul";
 }
 
+/**
+ * What a rule judges. A test rule must not run on a suite: `describe(...)`
+ * carries tests rather than assertions, so a question about assertions has no
+ * answer there and every answer it gets is noise.
+ */
+export const RULE_SUBJECTS = ["test", "suite", "any"] as const;
+export type RuleSubject = (typeof RULE_SUBJECTS)[number];
+
 /** How a cutoff was obtained. See `Rule.calibration`. */
 export const CALIBRATIONS = ["fitted", "borrowed", "placeholder"] as const;
 export type Calibration = (typeof CALIBRATIONS)[number];
@@ -159,6 +167,8 @@ export interface Rule {
   severity: Severity;
   /** What this rule needs before it can say anything. */
   requires: Capability[];
+  /** Which subject it judges. A test rule never sees a suite. */
+  subject: RuleSubject;
   ask: string;
   /**
    * Context for the model only: the exception, the thing it must not read the

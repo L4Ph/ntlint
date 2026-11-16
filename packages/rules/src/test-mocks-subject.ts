@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/test-mocks-subject.md",
   severity: "warning",
   requires: ["model", "doubles"],
+  subject: "test",
   kind: "noul",
   calibration: "borrowed",
   calibrationSource: "jev-lint@af58a3b rules/typescript/test-mocks-subject/rule.yml",

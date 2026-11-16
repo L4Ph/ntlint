@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/test-does-not-mock-what-it-owns.md",
   severity: "warning",
   requires: ["model", "doubles"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

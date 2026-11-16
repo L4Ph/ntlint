@@ -35,6 +35,7 @@ export function rule(overrides: Partial<Rule> = {}): Rule {
     docs: "https://example.test/rules/test-name-verifies-claim",
     severity: "warning",
     requires: ["model"],
+    subject: "test",
     ask: "The assertions in this test verify the behaviour its name claims.",
     note: null,
     criteria: { true: "the claim holds", false: "the claim does not hold" },

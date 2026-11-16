@@ -12,6 +12,7 @@ export default defineRule({
   docs: "docs/rules/unit-test-has-no-io.md",
   severity: "warning",
   requires: ["model", "io"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

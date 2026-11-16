@@ -13,6 +13,7 @@ export default defineRule({
   docs: "docs/rules/test-structure-is-flat.md",
   severity: "warning",
   requires: ["model", "assert"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,

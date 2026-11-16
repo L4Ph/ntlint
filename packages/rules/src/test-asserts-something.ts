@@ -14,6 +14,7 @@ export default defineRule({
   docs: "docs/rules/test-asserts-something.md",
   severity: "warning",
   requires: ["model", "assert"],
+  subject: "test",
   kind: "noul",
   calibration: "placeholder",
   calibrationSource: null,
