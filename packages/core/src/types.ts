@@ -136,6 +136,10 @@ export interface Finding {
   /** `value / at`: the only sound way to rank findings from different rules. */
   margin: number | null;
   subjectSource: TestSubject["subjectSource"];
+  /** The test's own name, so a reader can act without opening the file first. */
+  subject: string | null;
+  /** Where the rule documents itself: the finding must be lookupable. */
+  docs: string | null;
 }
 
 /**

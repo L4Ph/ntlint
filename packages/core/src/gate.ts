@@ -43,6 +43,8 @@ export function decide(rule: Rule, subject: TestSubject, answer: Answer | null):
     severity: rule.severity,
     at,
     subjectSource: subject.subjectSource,
+    subject: subject.name,
+    docs: rule.docs,
   } as const;
 
   if (!answer) {

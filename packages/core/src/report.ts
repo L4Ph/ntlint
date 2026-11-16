@@ -9,6 +9,54 @@
 import type { Finding } from "./types.ts";
 import type { RunResult } from "./run.ts";
 
+/**
+ * One JSON object per line: a finding, then the summary.
+ *
+ * This is the shape an agent reads. A stream of objects can be filtered with
+ * `grep` or a line reader before the summary exists, every field an agent needs
+ * to act is on the finding itself (the rule, where it documents itself, the
+ * test's name), and there is no prose to parse. The summary comes last, so a
+ * reader that stops at the first line still has a finding and a reader that
+ * reads to the end knows whether the run completed.
+ */
+export function formatAgent(result: RunResult): string {
+  const lines = result.findings.map((f) =>
+    JSON.stringify({
+      type: "finding",
+      ruleId: f.ruleId,
+      docs: f.docs,
+      severity: f.severity,
+      messageId: f.messageId,
+      file: f.file,
+      line: f.line,
+      endLine: f.endLine,
+      subject: f.subject,
+      subjectSource: f.subjectSource,
+      value: f.value,
+      at: f.at,
+      margin: f.margin,
+      confidence: f.confidence,
+    }),
+  );
+  lines.push(
+    JSON.stringify({
+      type: "summary",
+      verdicts: result.stats.subjects,
+      reported: result.stats.reported,
+      candidates: result.stats.candidates,
+      unsure: result.stats.unsure,
+      missing: result.stats.missing,
+      requests: result.spend.requests,
+      inputTokens: result.spend.inputTokens,
+      usd: result.spend.usd,
+      cached: result.cached,
+      failures: result.failures.length,
+      complete: result.failures.length === 0 && result.stats.missing === 0,
+    }),
+  );
+  return lines.join("\n");
+}
+
 /** Machine-readable, and the only shape that carries `subjectSource`. */
 export function formatJson(result: RunResult): string {
   return JSON.stringify(
@@ -90,6 +138,26 @@ if (import.meta.vitest) {
   };
 
   const result = (findings: ReturnType<typeof decide>[]) => ({ ...collect(findings), ...base });
+
+  test("the agent format is one object per line, findings first and summary last", () => {
+    const r = result([decide(rule({ calibration: "fitted" }), subject(), answer(0.9))]);
+    const lines = formatAgent(r).split("\n");
+    expect(lines).toHaveLength(2);
+    const finding = JSON.parse(lines[0]!) as Record<string, unknown>;
+    const summary = JSON.parse(lines[1]!) as Record<string, unknown>;
+    // Everything needed to act is on the finding: what, where, why, and the
+    // page that explains the rule.
+    expect(finding).toMatchObject({ type: "finding", ruleId: "test-name-verifies-claim", line: 3 });
+    expect(finding.subject).toBe("applies the discount");
+    expect(finding.docs).toBe(rule().docs);
+    expect(summary).toMatchObject({ type: "summary", verdicts: 1, reported: 1, complete: true });
+  });
+
+  test("an incomplete run says so in the summary an agent reads", () => {
+    const r = { ...result([decide(rule(), subject(), null)]), failures: ["401"] };
+    const summary = JSON.parse(formatAgent(r).split("\n").at(-1)!) as Record<string, unknown>;
+    expect(summary).toMatchObject({ complete: false, missing: 1, failures: 1 });
+  });
 
   test("json carries what an agent acts on, and no prose", () => {
     const r = result([decide(rule({ calibration: "fitted" }), subject(), answer(0.9))]);

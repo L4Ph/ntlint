@@ -16,7 +16,7 @@ export type { LanguageDefinition } from "./language.ts";
 export type { Question } from "./question.ts";
 export { defineRule, loadRules, severityOf, validateRule } from "./rules.ts";
 export type { LoadOptions, LoadedRules, SkippedRule } from "./rules.ts";
-export { formatGithub, formatJson, formatPretty } from "./report.ts";
+export { formatAgent, formatGithub, formatJson, formatPretty } from "./report.ts";
 export {
   classify,
   JevClient,

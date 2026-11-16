@@ -14,6 +14,7 @@ import {
   blocks,
   buildQuestion,
   Cache,
+  formatAgent,
   estimateTokens,
   extract,
   JevClient,
@@ -25,6 +26,7 @@ import {
   type AskClient,
   type LanguageDefinition,
   type Rule,
+  type RunResult,
   type TestSubject,
 } from "@test-lint/core";
 import { LANGUAGES, languageFor } from "@test-lint/languages";
@@ -40,11 +42,13 @@ export interface Deps {
 
 const DEFAULT_CACHE = ".test-lint/cache.json";
 
+/** How a run is printed. `agent` is the default: one JSON object per line. */
+export type Format = "agent" | "json" | "github" | "pretty";
+
 export interface Options {
   command: "check";
   paths: string[];
-  json: boolean;
-  github: boolean;
+  format: Format;
   dryRun: boolean;
   fittedOnly: boolean;
   /** Where the verdict cache lives, or `none` to run without one. */
@@ -57,7 +61,9 @@ const USAGE = `test-lint -- a linter for tests: one rule across languages, judge
 usage:
   test-lint check [paths...]        judge the tests under these paths (default: .)
   test-lint check --dry-run         what it would ask, and the price. No request.
-  test-lint check --json            machine-readable findings
+  test-lint check                   findings as JSON lines, then a summary (default)
+  test-lint check --format json     one JSON document
+  test-lint check --pretty          for a terminal
   test-lint check --github          GitHub annotations
   test-lint check --fitted-only     drop every rule whose cutoff was not fitted here
   test-lint check --cache <path>    verdict cache (default ${DEFAULT_CACHE}; 'none' disables)
@@ -70,8 +76,7 @@ export function parseArgs(argv: string[]): Options {
   const options: Options = {
     command: "check",
     paths: [],
-    json: false,
-    github: false,
+    format: "agent",
     dryRun: false,
     fittedOnly: false,
     cache: DEFAULT_CACHE,
@@ -87,8 +92,19 @@ export function parseArgs(argv: string[]): Options {
       i += 1;
       continue;
     }
-    if (arg === "--json") options.json = true;
-    else if (arg === "--github") options.github = true;
+    if (arg === "--format") {
+      const next = argv[i + 1];
+      if (next === undefined) throw new Error("--format needs agent, json, github or pretty");
+      if (!["agent", "json", "github", "pretty"].includes(next)) {
+        throw new Error(`unknown format: ${next}`);
+      }
+      options.format = next as Format;
+      i += 1;
+      continue;
+    }
+    if (arg === "--json") options.format = "json";
+    else if (arg === "--github") options.format = "github";
+    else if (arg === "--pretty") options.format = "pretty";
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--fitted-only") options.fittedOnly = true;
     else if (arg === "--help" || arg === "-h") options.help = true;
@@ -203,13 +219,7 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
   }
 
   if (cache !== null) writeCache(join(cwd, options.cache), cache);
-  out(
-    options.json
-      ? formatJson(result)
-      : options.github
-        ? formatGithub(result)
-        : formatPretty(result),
-  );
+  out(FORMATTERS[options.format](result));
   for (const failure of result.failures) err(`failed request: ${failure}`);
   // A run that could not ask is not a clean repository. In CI this is the
   // difference between "no findings" and "the key expired two months ago".
@@ -239,6 +249,13 @@ function writeCache(path: string, cache: Cache): void {
     // A cache that cannot be written is a slower next run, not a failed one.
   }
 }
+
+const FORMATTERS: Record<Format, (result: RunResult) => string> = {
+  agent: formatAgent,
+  json: formatJson,
+  github: formatGithub,
+  pretty: formatPretty,
+};
 
 function loadRuleSet(fittedOnly: boolean): Rule[] {
   // A rule that needs a capability no vocabulary declares is dropped, and the
