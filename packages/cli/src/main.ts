@@ -7,12 +7,13 @@
  * without a network. `--dry-run` never constructs a client at all, which is what
  * makes pricing a run possible with no key.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   blocks,
   buildQuestion,
+  Cache,
   estimateTokens,
   extract,
   JevClient,
@@ -38,6 +39,8 @@ export interface Deps {
   cwd?: string;
 }
 
+const DEFAULT_CACHE = ".test-lint/cache.json";
+
 export interface Options {
   command: "check";
   paths: string[];
@@ -45,6 +48,8 @@ export interface Options {
   github: boolean;
   dryRun: boolean;
   fittedOnly: boolean;
+  /** Where the verdict cache lives, or `none` to run without one. */
+  cache: string;
   help: boolean;
 }
 
@@ -56,6 +61,7 @@ usage:
   test-lint check --json            machine-readable findings
   test-lint check --github          GitHub annotations
   test-lint check --fitted-only     drop every rule whose cutoff was not fitted here
+  test-lint check --cache <path>    verdict cache (default ${DEFAULT_CACHE}; 'none' disables)
 
 The key comes from the environment and from nowhere else. Node can load a file:
   node --env-file=.env packages/cli/src/main.ts check packages
@@ -77,10 +83,19 @@ export function parseArgs(argv: string[]): Options {
     github: false,
     dryRun: false,
     fittedOnly: false,
+    cache: DEFAULT_CACHE,
     help: false,
   };
-  for (const arg of argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]!;
     if (arg === "check") continue;
+    if (arg === "--cache") {
+      const next = argv[i + 1];
+      if (next === undefined) throw new Error("--cache needs a path or `none`");
+      options.cache = next;
+      i += 1;
+      continue;
+    }
     if (arg === "--json") options.json = true;
     else if (arg === "--github") options.github = true;
     else if (arg === "--dry-run") options.dryRun = true;
@@ -209,10 +224,11 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
     return 2;
   }
   const client = deps.client ?? new JevClient({ apiKey: key });
+  const cache = options.cache === "none" ? null : readCache(join(cwd, options.cache));
 
   let result;
   try {
-    result = await run({ subjects, rules, client });
+    result = await run({ subjects, rules, client, cache: cache ?? undefined });
   } catch (error) {
     // A configuration or auth failure is a message, not a stack: retrying does
     // not help and the stack buries the reason.
@@ -220,6 +236,7 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
     return 2;
   }
 
+  if (cache !== null) writeCache(join(cwd, options.cache), cache);
   out(
     options.json
       ? formatJson(result)
@@ -237,6 +254,24 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
     return 2;
   }
   return blocks(result.findings, null) ? 1 : 0;
+}
+
+/** The verdict cache: answers, so a second run over the same tree costs nothing. */
+function readCache(path: string): Cache {
+  try {
+    return new Cache(JSON.parse(readFileSync(path, "utf-8")) as Record<string, never>);
+  } catch {
+    return new Cache();
+  }
+}
+
+function writeCache(path: string, cache: Cache): void {
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, JSON.stringify(cache.toJSON(), null, 2));
+  } catch {
+    // A cache that cannot be written is a slower next run, not a failed one.
+  }
 }
 
 function loadRuleSet(fittedOnly: boolean): Rule[] {
@@ -311,9 +346,9 @@ if (import.meta.vitest) {
   test("findings come back in the shape the flag asked for", async () => {
     const lines: string[] = [];
     const client = {
-      ask: async ({ questions }: { questions: unknown[] }) => ({
+      ask: async ({ questions }: { questions: Record<string, unknown> }) => ({
         answers: Object.fromEntries(
-          questions.map((_, i) => [`q${String(i).padStart(4, "0")}`, { type: "noul", noul: 0.99 }]),
+          Object.keys(questions).map((id) => [id, { type: "noul", noul: 0.99 }]),
         ),
         usage: { input_tokens: 10 },
       }),

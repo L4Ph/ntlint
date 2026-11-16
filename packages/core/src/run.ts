@@ -73,7 +73,12 @@ export async function run(options: RunOptions): Promise<RunResult> {
   let inputTokens = 0;
 
   for (const batch of chunk(pending, Math.max(1, maxQuestions))) {
-    const questions = batch.map((pair, i) => buildQuestion(pair.rule, pair.subject, questionId(i)));
+    const questions = Object.fromEntries(
+      batch.map((pair, i) => [
+        questionId(i),
+        buildQuestion(pair.rule, pair.subject, questionId(i)),
+      ]),
+    );
     try {
       const response = await client.ask({ state: "", questions });
       requests += 1;
@@ -133,14 +138,11 @@ it("no assertion at all", () => {});
     const state = { calls: 0, questions: 0 };
     return {
       state,
-      ask: async ({ questions }: { questions: unknown[] }) => {
+      ask: async ({ questions }: { questions: Record<string, unknown> }) => {
         state.calls += 1;
-        state.questions += questions.length;
+        state.questions += Object.keys(questions).length;
         const answers = Object.fromEntries(
-          questions.map((_, i) => [
-            `q${String(i).padStart(4, "0")}`,
-            { type: "noul", noul: value },
-          ]),
+          Object.keys(questions).map((id) => [id, { type: "noul", noul: value }]),
         );
         return { answers, usage: { input_tokens: 100 } };
       },

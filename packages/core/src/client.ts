@@ -41,7 +41,12 @@ export class JevError extends Error {
 
 export interface AskRequest {
   state: string;
-  questions: Question[];
+  /**
+   * Questions keyed by their own id, because that is the shape the endpoint
+   * takes: a JSON array is refused with "Input should be a valid dictionary".
+   * A real request is the only thing that told us this.
+   */
+  questions: Record<string, Question>;
 }
 
 export interface AskResponse {
@@ -103,21 +108,22 @@ export class JevClient implements AskClient {
   }
 
   async ask(request: AskRequest): Promise<AskResponse> {
-    if (request.questions.length === 0) return { answers: {}, usage: { input_tokens: 0 } };
+    const names = Object.keys(request.questions);
+    if (names.length === 0) return { answers: {}, usage: { input_tokens: 0 } };
     try {
       return await this.post(request);
     } catch (error) {
       // The server refused the size, so the only recovery is fewer questions.
       // A single question cannot be split, and that is a real failure.
-      if (error instanceof JevError && error.kind === "too_big" && request.questions.length > 1) {
-        const half = Math.ceil(request.questions.length / 2);
+      if (error instanceof JevError && error.kind === "too_big" && names.length > 1) {
+        const half = Math.ceil(names.length / 2);
         const first = await this.ask({
           state: request.state,
-          questions: request.questions.slice(0, half),
+          questions: pick(request.questions, names.slice(0, half)),
         });
         const second = await this.ask({
           state: request.state,
-          questions: request.questions.slice(half),
+          questions: pick(request.questions, names.slice(half)),
         });
         return {
           answers: { ...first.answers, ...second.answers },
@@ -238,6 +244,11 @@ export function readAnswer(
   return null;
 }
 
+/** The named subset of a question record, keeping the ids. */
+function pick(questions: Record<string, Question>, names: string[]): Record<string, Question> {
+  return Object.fromEntries(names.map((n) => [n, questions[n]!]));
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -256,9 +267,13 @@ if (import.meta.vitest) {
   const { extract } = await import("./extract.ts");
   const subject = extract('it("x", () => { expect(1).toBe(2); });', "a.test.ts", VOCAB)[0]!;
   const { rule } = await import("./testing/builders.ts");
-  const questions = (n: number) =>
-    Array.from({ length: n }, (_, i) =>
-      buildQuestion(rule(), { ...subject, name: `t${i}` }, `q${i}`),
+  // The endpoint takes a dictionary keyed by question id, not an array.
+  const questions = (n: number): Record<string, ReturnType<typeof buildQuestion>> =>
+    Object.fromEntries(
+      Array.from({ length: n }, (_, i) => [
+        `q${i}`,
+        buildQuestion(rule(), { ...subject, name: `t${i}` }, `q${i}`),
+      ]),
     );
 
   const client = (transport: typeof fetch) =>
@@ -325,15 +340,14 @@ if (import.meta.vitest) {
     const sizes: number[] = [];
     const c = client(async (_url, init) => {
       const body = JSON.parse(typeof init?.body === "string" ? init.body : "{}") as {
-        questions: unknown[];
+        questions: Record<string, unknown>;
       };
-      sizes.push(body.questions.length);
-      if (body.questions.length > 2) {
+      const names = Object.keys(body.questions);
+      sizes.push(names.length);
+      if (names.length > 2) {
         return new Response("max_tokens_exceeded", { status: 400 });
       }
-      const answers = Object.fromEntries(
-        body.questions.map((_, i) => [`q${sizes.length}${i}`, { type: "noul", noul: 0.4 }]),
-      );
+      const answers = Object.fromEntries(names.map((n) => [n, { type: "noul", noul: 0.4 }]));
       return new Response(JSON.stringify({ answers, usage: { input_tokens: 5 } }), { status: 200 });
     });
     const res = await c.ask({ state: "", questions: questions(4) });

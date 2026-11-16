@@ -56,6 +56,7 @@ export function formatPretty(result: RunResult): string {
   lines.push(
     `${subjects} verdict(s) judged, ${reported} reported (${candidates} candidate, ${unsure} unsure), ${missing} without a verdict`,
   );
+  lines.push(`${result.spend.requests} request(s), $${result.spend.usd.toFixed(4)}`);
   if (result.failures.length > 0) lines.push(`${result.failures.length} request(s) failed`);
   return lines.join("\n");
 }
