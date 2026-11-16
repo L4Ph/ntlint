@@ -56,6 +56,9 @@ usage:
   test-lint check --json            machine-readable findings
   test-lint check --github          GitHub annotations
   test-lint check --fitted-only     drop every rule whose cutoff was not fitted here
+
+The key comes from the environment and from nowhere else. Node can load a file:
+  node --env-file=.env packages/cli/src/main.ts check packages
 `;
 
 /** Extensions a vocabulary claims, by grammar. */
@@ -202,7 +205,7 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
   }
 
   if (deps.client == null && key === null) {
-    err("no API key: set TYPESAFE_API_KEY, or run with --dry-run to price the run");
+    err("no API key: set TYPESAFE_API_KEY (node --env-file=.env loads one), or run --dry-run");
     return 2;
   }
   const client = deps.client ?? new JevClient({ apiKey: key });
@@ -225,6 +228,14 @@ export async function main(argv: string[], deps: Deps = {}): Promise<number> {
         : formatPretty(result),
   );
   for (const failure of result.failures) err(`failed request: ${failure}`);
+  // A run that could not ask is not a clean repository. In CI this is the
+  // difference between "no findings" and "the key expired two months ago".
+  if (result.failures.length > 0 || result.stats.missing > 0) {
+    err(
+      `${result.stats.missing} verdict(s) missing: the run did not complete, so it is not a pass`,
+    );
+    return 2;
+  }
   return blocks(result.findings, null) ? 1 : 0;
 }
 
@@ -277,6 +288,24 @@ if (import.meta.vitest) {
     const code = await main(["check", "src"], { err: (l) => errors.push(l), cwd: repo() });
     expect(code).toBe(2);
     expect(errors.join("\n")).toContain("no API key");
+  });
+
+  test("a run that could not ask exits 2 rather than 0", async () => {
+    // Otherwise an expired key looks exactly like a clean repository.
+    const errors: string[] = [];
+    const failing = {
+      ask: async () => {
+        throw new Error("401");
+      },
+    };
+    const code = await main(["check", "src"], {
+      out: () => {},
+      err: (l) => errors.push(l),
+      client: failing,
+      cwd: repo(),
+    });
+    expect(code).toBe(2);
+    expect(errors.join("\n")).toContain("did not complete");
   });
 
   test("findings come back in the shape the flag asked for", async () => {

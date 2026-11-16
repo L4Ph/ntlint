@@ -54,7 +54,7 @@ export function formatPretty(result: RunResult): string {
   );
   const { subjects, reported, missing, unsure, candidates } = result.stats;
   lines.push(
-    `${subjects} judged, ${reported} reported (${candidates} candidate, ${unsure} unsure), ${missing} without a verdict`,
+    `${subjects} verdict(s) judged, ${reported} reported (${candidates} candidate, ${unsure} unsure), ${missing} without a verdict`,
   );
   if (result.failures.length > 0) lines.push(`${result.failures.length} request(s) failed`);
   return lines.join("\n");
