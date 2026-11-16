@@ -1,15 +1,56 @@
 {
   "name": "test-lint",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "A linter for tests: one rule across languages, judged by a classifier, reported for an agent.",
+  "description": "A linter for tests: one rule across languages, judged by a classifier, printed for an agent.",
+  "keywords": [
+    "agent",
+    "ast-grep",
+    "lint",
+    "test-quality",
+    "testing"
+  ],
+  "homepage": "https://github.com/L4Ph/test-lint#readme",
+  "bugs": {
+    "url": "https://github.com/L4Ph/test-lint/issues"
+  },
   "license": "MIT",
+  "author": "katsuyuki-karasawa",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/L4Ph/test-lint.git"
+  },
+  "bin": {
+    "test-lint": "./dist/main.mjs"
+  },
+  "files": [
+    "dist",
+    "docs/design.md",
+    "README.md",
+    "LICENSE"
+  ],
   "type": "module",
+  "exports": {
+    ".": "./dist/main.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "pnpm -r run build",
+    "build": "vp pack",
     "test": "vp test",
     "check": "vp check",
+    "prepublishOnly": "vp pack",
     "prepare": "vp config"
+  },
+  "dependencies": {
+    "@ast-grep/lang-go": "^0.0.6",
+    "@ast-grep/lang-python": "^0.0.6",
+    "@ast-grep/lang-rust": "^0.0.7",
+    "@ast-grep/napi": "^0.51.1",
+    "valibot": "^1.5.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
@@ -23,5 +64,17 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.18.0"
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.18.0",
+  "inlinedDependencies": {
+    "@jridgewell/sourcemap-codec": "1.6.0",
+    "chai": "6.3.0",
+    "expect-type": "1.4.0",
+    "magic-string": "1.4.5",
+    "tinybench": "6.2.3",
+    "vite-plus": "1.6.0",
+    "vitest": "5.1.0"
+  }
 }

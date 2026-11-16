@@ -199,6 +199,25 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      '@ast-grep/lang-go':
+        specifier: ^0.0.6
+        version: 0.0.6
+      '@ast-grep/lang-python':
+        specifier: ^0.0.6
+        version: 0.0.6
+      '@ast-grep/lang-rust':
+        specifier: ^0.0.7
+        version: 0.0.7
+      '@ast-grep/napi':
+        specifier: ^0.51.1
+        version: 0.51.1
+      valibot:
+        specifier: ^1.5.0
+        version: 1.5.0(typescript@7.0.2)
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
     devDependencies:
       '@types/node':
         specifier: ^26.6.5
